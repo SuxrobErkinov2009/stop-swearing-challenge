@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./main.css">
+    <title>Stop Swearing Challenge</title>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container">
+            <div class="header__wrapper">
+                <img class="header__img" src="./img/Sayt logotipi.png" alt="Logo">
+                <div id="timer-display" class="timer-display">06:00:00:00</div>
+                <button class="header__btn" id="infoBtn">To'liq ma'lumot!</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero" id="participants-grid">
+        </section>
+
+        <section class="controls">
+            <button id="startTimerBtn" class="main-btn">Vaqtni ishga tushirish</button>
+            <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>
+        </section>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>O'yin qoidalari <br> </h2>
+            <br>
+            <p id="modal-text"></p>
+        </div>
+    </div>
+
+    <div id="result-overlay" class="overlay">
+        <div class="overlay-content">
+            <h1 id="result-message"></h1>
+            <button onclick="location.reload()" class="main-btn">Yangilash</button>
+        </div>
+    </div>
+
+    <!-- node node.js -->
+
+    <script src="./main.js"></script>
+</body>
+
+</html>
