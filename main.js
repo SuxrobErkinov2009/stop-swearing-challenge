@@ -13,7 +13,54 @@ const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
 
-function init() {
+// 1. SAQLASH FUNKSIYASI (Ham serverga, ham brauzerga)
+async function saveData() {
+    const data = { participants, endTime };
+
+    // Brauzerga saqlash (Noutbuk o'chsa ham qoladi)
+    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
+
+    // Serverga saqlash (Zaxira uchun)
+    try {
+        await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    } catch (e) { console.log("Serverga ulanib bo'lmadi, lekin brauzerda saqlandi."); }
+}
+
+// 2. YUKLASH FUNKSIYASI
+async function loadData() {
+    // Birinchi brauzerdan qidiramiz
+    const local = localStorage.getItem('swearing_challenge_backup');
+    if (local) {
+        const parsed = JSON.parse(local);
+        participants = parsed.participants;
+        endTime = parsed.endTime;
+    }
+
+    // Keyin serverdan tekshiramiz
+    try {
+        const response = await fetch('/api/load');
+        if (response.ok) {
+            const serverData = await response.json();
+            // Agar serverda ma'lumot bo'lsa va u yangiroq bo'lsa, uni olamiz
+            if (serverData.endTime && (!endTime || serverData.endTime > endTime)) {
+                participants = serverData.participants;
+                endTime = serverData.endTime;
+            }
+        }
+    } catch (e) { console.log("Serverdan yuklab bo'lmadi, brauzer ma'lumotidan foydalanamiz."); }
+
+    if (endTime) {
+        startBtn.disabled = true;
+        startTimer();
+    }
+    renderUI();
+}
+
+function renderUI() {
     grid.innerHTML = '';
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -32,30 +79,13 @@ function subtract(id) {
     if (p.score > 0) {
         p.score--;
         document.getElementById(`score-${id}`).innerText = p.score;
-        if (p.score === 0) init();
+        saveData(); // Ball ayirishi bilan avtomatik saqlaydi
+        if (p.score === 0) renderUI();
     }
-}
-
-async function loadData() {
-    try {
-        const response = await fetch('/api/load');
-        if (response.ok) {
-            const data = await response.json();
-            participants = data.participants || participants;
-            endTime = data.endTime;
-            if (endTime) {
-                startBtn.disabled = true;
-                startTimer();
-            }
-        }
-    } catch (e) {
-        console.log("Ma'lumot topilmadi, boshlang'ich holat yuklanmoqda.");
-    }
-    init();
 }
 
 startBtn.onclick = async () => {
-    if (confirm("Chindan ham ishga tushirasizmi?")) {
+    if (confirm("Vaqtni ishga tushirasizmi? Uni to'xtatib bo'lmaydi!")) {
         endTime = Date.now() + CHALLENGE_DURATION;
         startBtn.disabled = true;
         await saveData();
@@ -71,7 +101,6 @@ function startTimer() {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
-            finishGame();
         } else {
             updateTimerDisplay(timeLeft);
         }
@@ -87,17 +116,10 @@ function updateTimerDisplay(ms) {
     timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-async function saveData() {
-    await fetch('/api/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participants, endTime })
-    });
-}
-
+// "Natijalarni saqlash" tugmasi uchun
 document.getElementById('saveBtn').onclick = async () => {
     await saveData();
-    alert("Ma'lumotlar serverga saqlandi!");
+    alert("Ma'lumotlar saqlandi!");
 };
 
 loadData();
