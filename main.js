@@ -18,6 +18,7 @@ const startBtn = document.getElementById('startTimerBtn');
 const detailsBtn = document.getElementById('detailsBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
+document.getElementById('refreshBtn').style.display = 'block';
 
 async function saveData() {
     const data = { participants, endTime, nextSubtractTime };
@@ -155,5 +156,3 @@ if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
-
-document.getElementById('result-overlay').style.display = 'flex';

@@ -536,31 +536,27 @@ body {
     color: #888;
 }
 
+/* Ekranni qora qiladigan overlay-ni butkul o'chiramiz */
 .overlay {
-    /* Dastlab yashirin turadi */
-    display: none;
-
-    /* Ekranni to'liq qoplashi uchun */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 9999;
-
-    /* Ichidagilarni markazga keltirish tayyorgarligi */
-    justify-content: center;
-    align-items: center;
+    display: none !important;
+    /* Bu endi ekranni qoplamaydi */
 }
 
-/* Faqat JavaScript orqali 'active' klassi qo'shilganda ko'rinadi */
-.overlay.active {
+/* Pastdagi tugmalar joylashuvi */
+.bottom-controls {
     display: flex;
+    flex-direction: column;
+    /* Tugmalarni ustma-ust qiladi */
+    align-items: center;
+    padding: 30px 0;
+    gap: 10px;
 }
 
-.overlay-content {
-    text-align: center;
+#refreshBtn {
+    /* Bu tugma faqat o'yin tugaganda ko'rinishi uchun JS orqali boshqariladi */
+    background: #0051ff;
+    color: white;
+    box-shadow: 0 0 15px rgba(0, 81, 255, 0.5);
 }
 
 /* Responsive Media Queries */
