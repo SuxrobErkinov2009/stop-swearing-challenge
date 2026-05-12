@@ -138,7 +138,6 @@ if (detailsBtn) {
     };
 }
 
-// SAQLASH TUGMASI (Pastdagi)
 const manualSaveBtn = document.getElementById('saveBtn');
 if (manualSaveBtn) {
     manualSaveBtn.onclick = async () => {
@@ -149,26 +148,22 @@ if (manualSaveBtn) {
 
 loadData();
 
-// Modal elementlarini topamiz
 const modal = document.getElementById("infoModal");
 const infoBtn = document.getElementById("infoBtn");
 const closeBtn = document.querySelector(".close-modal");
 
-// Tugma bosilganda modalni ochish
 if (infoBtn) {
     infoBtn.onclick = () => {
         modal.style.display = "block";
     }
 }
 
-// "X" bosilganda modalni yopish
 if (closeBtn) {
     closeBtn.onclick = () => {
         modal.style.display = "none";
     }
 }
 
-// Modal tashqarisini bossa ham yopish
 window.onclick = (event) => {
     if (event.target == modal) {
         modal.style.display = "none";
