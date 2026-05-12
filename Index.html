@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -9,19 +9,23 @@
 </head>
 
 <body>
+
     <header class="header">
-        <div class="container header__wrapper">
-            <img class="header__img" src="./img/Sayt logotipi.png" alt="Logo">
-            <div id="timer-display" class="timer-display">06:00:00:00</div>
-            <button class="header__btn" id="detailsBtn">Status</button>
+        <div class="container">
+            <div class="header__wrapper">
+                <img class="header__img" src="./img/Sayt logotipi.png" alt="Logo">
+                <div id="timer-display" class="timer-display">06:00:00:00</div>
+                <button class="header__btn" id="detailsBtn">To'liq ma'lumot!</button>
+            </div>
         </div>
     </header>
 
     <main class="container">
-        <section class="hero" id="participants-grid"></section>
+        <section class="hero" id="participants-grid">
+        </section>
 
         <section class="controls">
-            <button id="startTimerBtn" class="main-btn">Vaqtni boshlash</button>
+            <button id="startTimerBtn" class="main-btn">Vaqtni ishga tushirish</button>
             <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>
         </section>
     </main>
@@ -38,13 +42,39 @@
             </div>
             <div class="modal-body">
                 <h3>Nima uchun bu o'yinni boshladik?</h3>
-                <p>Ushbu challenge insonning o'z nutqini nazorat qilishi va irodasini chiniqtirishi uchun yaratilgan.
-                </p>
+                <p>Ushbu challenge insonning o'z nutqini nazorat qilishi, madaniyatli muloqotni shakllantirishi va
+                    irodasini
+                    chiniqtirishi uchun yaratilgan. So'kinish — bu nafaqat yomon odat, balki fikrlash doirasining
+                    cheklanganligidir. Biz ushbu loyiha orqali o'zimizga va atrofimizdagilarga nisbatan hurmatni
+                    oshirishni
+                    maqsad qilganmiz.</p>
+
+                <h3>O'yin nima beradi?</h3>
+                <ul>
+                    <li><strong>Nutq madaniyati:</strong> Gapirayotganda har bir so'zni o'ylab gapirishga o'rgatadi.
+                    </li>
+                    <li><strong>Iroda kuchi:</strong> Nafsni va asabni jilovlashni mashq qildiradi.</li>
+                    <li><strong>Ma'naviy yuksalish:</strong> So'kinishdan tozalangan til ko'ngilni ham toza saqlaydi.
+                    </li>
+                </ul>
+
                 <h3>Qoidalar qat'iy:</h3>
-                <p>15 tadan ball berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi. 2 soatlik cheklov amal qiladi.
-                </p>
+                <p>Har bir ishtirokchiga 15 tadan ball (hayot) berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi. 6
+                    kun
+                    davomida kimda eng ko'p ball saqlanib qolsa, o'sha ishtirokchi o'z so'zining ustidan chiqqan
+                    hisoblanadi. <br> Agar kimdur o'z ball hisobini 0 ga tushirib qo'yadigan bo'lsa, u inson o'yinni
+                    yutqazgan hisoblanadi va hafta oxirida
+                    hammaga nimadir olib berishga majburdir!!!</p>
+
                 <p class="quote">"Tiliga ehtiyot bo'lgan odam — eng kuchli odamdir."</p>
             </div>
+        </div>
+    </div>
+
+    <div id="result-overlay" class="overlay">
+        <div class="overlay-content">
+            <h1 id="result-message"></h1>
+            <button onclick="location.reload()" class="main-btn">Yangilash</button>
         </div>
     </div>
 
