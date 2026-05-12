@@ -1,3 +1,4 @@
+// 1. Ishtirokchilar ro'yxati (Otabek 15 ball qilindi)
 let participants = [
     { id: 1, name: "Suxrob Erkinov", score: 13 },
     { id: 2, name: "Jonibek Sulaymonov", score: 13 },
@@ -12,10 +13,11 @@ const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
+const detailsBtn = document.getElementById('detailsBtn');
 
+// SAQLASH: Brauzer va Serverga
 async function saveData() {
     const data = { participants, endTime };
-
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 
     try {
@@ -24,9 +26,10 @@ async function saveData() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-    } catch (e) { console.log("Serverga ulanib bo'lmadi, lekin brauzerda saqlandi."); }
+    } catch (e) { console.log("Server error, but saved locally."); }
 }
 
+// YUKLASH: Ma'lumotlarni tiklash
 async function loadData() {
     const local = localStorage.getItem('swearing_challenge_backup');
     if (local) {
@@ -44,7 +47,7 @@ async function loadData() {
                 endTime = serverData.endTime;
             }
         }
-    } catch (e) { console.log("Serverdan yuklab bo'lmadi, brauzer ma'lumotidan foydalanamiz."); }
+    } catch (e) { console.log("Server load failed."); }
 
     if (endTime) {
         startBtn.disabled = true;
@@ -53,7 +56,9 @@ async function loadData() {
     renderUI();
 }
 
+// EKRANGA CHIQARISH
 function renderUI() {
+    if (!grid) return;
     grid.innerHTML = '';
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -67,9 +72,10 @@ function renderUI() {
     });
 }
 
-function subtract(id) {
+// BALL AYIRISH
+window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
-    if (p.score > 0) {
+    if (p && p.score > 0) {
         p.score--;
         document.getElementById(`score-${id}`).innerText = p.score;
         saveData();
@@ -77,8 +83,9 @@ function subtract(id) {
     }
 }
 
+// VAQTNI BOSHLASH
 startBtn.onclick = async () => {
-    if (confirm("Vaqtni ishga tushirasizmi? Uni to'xtatib bo'lmaydi!")) {
+    if (confirm("Vaqtni ishga tushirasizmi?")) {
         endTime = Date.now() + CHALLENGE_DURATION;
         startBtn.disabled = true;
         await saveData();
@@ -109,9 +116,35 @@ function updateTimerDisplay(ms) {
     timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-document.getElementById('saveBtn').onclick = async () => {
-    await saveData();
-    alert("Ma'lumotlar saqlandi!");
-};
+// TO'LIQ MA'LUMOT TUGMASI (Sen so'ragan funksiya)
+if (detailsBtn) {
+    detailsBtn.onclick = () => {
+        let report = "📊 CHALLENGE HOLATI:\n\n";
+        participants.forEach(p => {
+            report += `🔹 ${p.name}: ${p.score} ball\n`;
+        });
+
+        if (endTime) {
+            const timeLeft = endTime - Date.now();
+            if (timeLeft > 0) {
+                const d = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                const h = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+                report += `\n⏳ Qolgan vaqt: ${d} kun va ${h} soat.`;
+            } else {
+                report += "\n🏁 Vaqt tugadi!";
+            }
+        }
+        alert(report);
+    };
+}
+
+// SAQLASH TUGMASI (Pastdagi)
+const manualSaveBtn = document.getElementById('saveBtn');
+if (manualSaveBtn) {
+    manualSaveBtn.onclick = async () => {
+        await saveData();
+        alert("Barcha natijalar saqlandi!");
+    };
+}
 
 loadData();
