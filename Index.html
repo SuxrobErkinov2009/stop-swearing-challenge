@@ -9,52 +9,41 @@
 </head>
 
 <body>
-
     <header class="header">
         <div class="container header__wrapper">
             <img class="header__img" src="./img/Sayt logotipi.png" alt="Logo">
-            <div id="timer-display" class="timer-display">00:00:00:00</div>
+            <div id="timer-display" class="timer-display">06:00:00:00</div>
             <button class="header__btn" id="detailsBtn">Status</button>
         </div>
     </header>
 
     <main class="container">
-        <div class="hero-wrapper">
-            <section class="hero" id="participants-grid"></section>
-        </div>
+        <section class="hero" id="participants-grid"></section>
 
         <section class="controls">
-            <button id="startTimerBtn" class="main-btn glow-blue">Vaqtni boshlash</button>
-            <button id="saveBtn" class="main-btn glow-cyan">Natijalarni saqlash</button>
+            <button id="startTimerBtn" class="main-btn">Vaqtni boshlash</button>
+            <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>
         </section>
     </main>
 
     <div class="bottom-controls">
-        <button id="infoBtn" class="premium-btn">Challenge Haqida To'liq Ma'lumot</button>
+        <button id="infoBtn" class="premium-btn">O'yin haqida to'liq ma'lumot</button>
     </div>
 
     <div id="infoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Challenge Maqsadi</h2>
+                <h2>Challenge Haqida</h2>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
-                <h3>Nima uchun bu o'yin?</h3>
-                <p>Ushbu challenge insonning o'z nutqini nazorat qilishi, irodasini chiniqtirishi uchun yaratilgan. Har
-                    bir so'z — bu sizning madaniyatingiz ko'zgusi.</p>
-
-                <h3>Nima beradi?</h3>
-                <ul>
-                    <li>Nutq madaniyati va iroda kuchi.</li>
-                    <li>Nafsni jilovlash mashqi.</li>
-                    <li>Ma'naviy yuksalish.</li>
-                </ul>
-
-                <h3>Qoidalar:</h3>
-                <p>15 ball beriladi. Har bir so'kinish uchun 1 ball ayiriladi. 0 ga tushgan kishi yutqazadi va jazo
-                    (shirinlik yoki ovqat) belgilangan!</p>
-                <p class="quote">"Kuch — bilakda emas, tildadir."</p>
+                <h3>Nima uchun bu o'yinni boshladik?</h3>
+                <p>Ushbu challenge insonning o'z nutqini nazorat qilishi va irodasini chiniqtirishi uchun yaratilgan.
+                </p>
+                <h3>Qoidalar qat'iy:</h3>
+                <p>15 tadan ball berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi. 2 soatlik cheklov amal qiladi.
+                </p>
+                <p class="quote">"Tiliga ehtiyot bo'lgan odam — eng kuchli odamdir."</p>
             </div>
         </div>
     </div>
