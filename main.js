@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15 },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15 },
+    { id: 1, name: "Suxrob Erkinov", score: 13 },
+    { id: 2, name: "Jonibek Sulaymonov", score: 13 },
     { id: 3, name: "Otabek Sulaymonov", score: 15 },
-    { id: 4, name: "Ansor G'ulomov", score: 15 }
+    { id: 4, name: "Ansor G'ulomov", score: 11 }
 ];
 
 let timerInterval;
@@ -13,14 +13,11 @@ const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
 
-// 1. SAQLASH FUNKSIYASI (Ham serverga, ham brauzerga)
 async function saveData() {
     const data = { participants, endTime };
 
-    // Brauzerga saqlash (Noutbuk o'chsa ham qoladi)
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 
-    // Serverga saqlash (Zaxira uchun)
     try {
         await fetch('/api/save', {
             method: 'POST',
@@ -30,9 +27,7 @@ async function saveData() {
     } catch (e) { console.log("Serverga ulanib bo'lmadi, lekin brauzerda saqlandi."); }
 }
 
-// 2. YUKLASH FUNKSIYASI
 async function loadData() {
-    // Birinchi brauzerdan qidiramiz
     const local = localStorage.getItem('swearing_challenge_backup');
     if (local) {
         const parsed = JSON.parse(local);
@@ -40,12 +35,10 @@ async function loadData() {
         endTime = parsed.endTime;
     }
 
-    // Keyin serverdan tekshiramiz
     try {
         const response = await fetch('/api/load');
         if (response.ok) {
             const serverData = await response.json();
-            // Agar serverda ma'lumot bo'lsa va u yangiroq bo'lsa, uni olamiz
             if (serverData.endTime && (!endTime || serverData.endTime > endTime)) {
                 participants = serverData.participants;
                 endTime = serverData.endTime;
@@ -79,7 +72,7 @@ function subtract(id) {
     if (p.score > 0) {
         p.score--;
         document.getElementById(`score-${id}`).innerText = p.score;
-        saveData(); // Ball ayirishi bilan avtomatik saqlaydi
+        saveData();
         if (p.score === 0) renderUI();
     }
 }
@@ -116,7 +109,6 @@ function updateTimerDisplay(ms) {
     timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// "Natijalarni saqlash" tugmasi uchun
 document.getElementById('saveBtn').onclick = async () => {
     await saveData();
     alert("Ma'lumotlar saqlandi!");
