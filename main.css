@@ -382,3 +382,58 @@ body {
     position: relative;
     overflow: hidden;
 }
+
+#participants-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.card {
+    flex: 1;
+    min-width: 220px;
+    max-width: 280px;
+    background: #1a1a1a;
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    border: 1px solid #333;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.score-box {
+    font-size: 52px;
+    font-weight: bold;
+    color: #00c6ff;
+    margin: 15px 0;
+}
+
+.minus-btn {
+    background: #ff4757;
+    color: white;
+    border: none;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 28px;
+    transition: 0.3s;
+}
+
+.disabled-btn {
+    background: #333 !important;
+    cursor: not-allowed;
+    opacity: 0.4;
+    transform: none !important;
+}
+
+.cooldown-label {
+    color: #ffcc00;
+    font-size: 12px;
+    margin-top: 12px;
+    font-weight: bold;
+    min-height: 15px;
+}

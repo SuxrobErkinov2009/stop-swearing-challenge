@@ -6,8 +6,11 @@ let participants = [
 ];
 
 let timerInterval;
+let cooldownInterval;
 let endTime = null;
+let nextSubtractTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
+const COOLDOWN_DURATION = 2 * 60 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -15,10 +18,9 @@ const startBtn = document.getElementById('startTimerBtn');
 const detailsBtn = document.getElementById('detailsBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
-const closeBtn = document.querySelector(".close-modal");
 
 async function saveData() {
-    const data = { participants, endTime };
+    const data = { participants, endTime, nextSubtractTime };
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
     try {
         await fetch('/api/save', {
@@ -26,7 +28,7 @@ async function saveData() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-    } catch (e) { console.error("Save error"); }
+    } catch (e) { }
 }
 
 async function loadData() {
@@ -35,20 +37,27 @@ async function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants;
         endTime = parsed.endTime;
+        nextSubtractTime = parsed.nextSubtractTime;
     }
     try {
         const response = await fetch('/api/load');
         if (response.ok) {
             const serverData = await response.json();
-            if (serverData.endTime && (!endTime || serverData.endTime > endTime)) {
+            if (serverData.endTime) {
                 participants = serverData.participants;
                 endTime = serverData.endTime;
+                nextSubtractTime = serverData.nextSubtractTime;
             }
         }
-    } catch (e) { console.error("Load error"); }
+    } catch (e) { }
+
     if (endTime) {
         startBtn.disabled = true;
         startTimer();
+    }
+
+    if (nextSubtractTime && Date.now() < nextSubtractTime) {
+        startCooldownTimer();
     }
     renderUI();
 }
@@ -56,40 +65,53 @@ async function loadData() {
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
+    const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
+
     participants.forEach(p => {
         const card = document.createElement('div');
         card.className = `card ${p.score <= 0 ? 'out' : ''}`;
         card.innerHTML = `
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn" onclick="subtract(${p.id})">×</button>
+            <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
+                    ${isLocked ? 'disabled' : ''} 
+                    onclick="subtract(${p.id})">×</button>
+            <div class="cooldown-label"></div>
         `;
         grid.appendChild(card);
     });
 }
 
 window.subtract = function (id) {
+    if (nextSubtractTime && Date.now() < nextSubtractTime) return;
+
     const p = participants.find(x => x.id === id);
     if (p && p.score > 0) {
         p.score--;
-        const scoreElement = document.getElementById(`score-${id}`);
-        scoreElement.innerText = p.score;
-        scoreElement.style.transform = "scale(1.2)";
-        setTimeout(() => scoreElement.style.transform = "scale(1)", 200);
+        nextSubtractTime = Date.now() + COOLDOWN_DURATION;
         saveData();
-        if (p.score === 0) renderUI();
+        renderUI();
+        startCooldownTimer();
     }
 }
 
-if (startBtn) {
-    startBtn.onclick = async () => {
-        if (confirm("Challenge boshlansinmi?")) {
-            endTime = Date.now() + CHALLENGE_DURATION;
-            startBtn.disabled = true;
-            await saveData();
-            startTimer();
+function startCooldownTimer() {
+    if (cooldownInterval) clearInterval(cooldownInterval);
+    cooldownInterval = setInterval(() => {
+        const timeLeft = nextSubtractTime - Date.now();
+        if (timeLeft <= 0) {
+            clearInterval(cooldownInterval);
+            nextSubtractTime = null;
+            saveData();
+            renderUI();
+        } else {
+            const h = Math.floor(timeLeft / 3600000);
+            const m = Math.floor((timeLeft % 3600000) / 60000);
+            const s = Math.floor((timeLeft % 60000) / 1000);
+            const timeStr = `Keyingi imkoniyat: ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            document.querySelectorAll('.cooldown-label').forEach(el => el.innerText = timeStr);
         }
-    };
+    }, 1000);
 }
 
 function startTimer() {
@@ -100,29 +122,35 @@ function startTimer() {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
         } else {
-            updateTimerDisplay(timeLeft);
+            const s = Math.floor(timeLeft / 1000);
+            const d = Math.floor(s / 86400);
+            const h = Math.floor((s % 86400) / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         }
     }, 1000);
 }
 
-function updateTimerDisplay(ms) {
-    const s = Math.floor(ms / 1000);
-    const d = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-}
+startBtn.onclick = async () => {
+    if (confirm("6 kunlik challenge boshlansinmi?")) {
+        endTime = Date.now() + CHALLENGE_DURATION;
+        startBtn.disabled = true;
+        await saveData();
+        startTimer();
+    }
+};
 
 if (detailsBtn) {
     detailsBtn.onclick = () => {
-        let report = "📊 CHALLENGE STATUS:\n\n";
-        participants.forEach(p => report += `• ${p.name}: ${p.score}\n`);
-        alert(report);
+        let r = "ISHTIROKCHILAR:\n";
+        participants.forEach(p => r += `${p.name}: ${p.score} ball\n`);
+        alert(r);
     };
 }
 
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
+const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
