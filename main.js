@@ -8,7 +8,7 @@ let participants = [
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 10 * 60 * 1000; // 10 minut shaxsiy cooldown
+const COOLDOWN_TIME = 10 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -30,10 +30,9 @@ function loadData() {
         participants = parsed.participants;
         endTime = parsed.endTime;
     }
-
     if (endTime) {
         if (Date.now() < endTime) {
-            startBtn.style.display = 'none';
+            if (startBtn) startBtn.style.display = 'none';
             startTimer();
         } else {
             showRefreshUI();
@@ -47,26 +46,23 @@ window.subtract = function (id) {
     if (endTime && now >= endTime) return;
 
     const p = participants.find(x => x.id === id);
-    if (p && p.nextAllowedTime && now < p.nextAllowedTime) return;
+    if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
-    if (p && p.score > 0) {
-        p.score--;
-        p.nextAllowedTime = now + COOLDOWN_TIME;
-        saveData();
-        renderUI();
+    p.score--;
+    p.nextAllowedTime = now + COOLDOWN_TIME;
+    saveData();
+    renderUI();
 
-        const scoreBox = document.getElementById(`score-${id}`);
-        if (scoreBox) {
-            scoreBox.classList.add('score-change');
-            setTimeout(() => scoreBox.classList.remove('score-change'), 500);
-        }
+    const scoreEl = document.getElementById(`score-${id}`);
+    if (scoreEl) {
+        scoreEl.classList.add('score-change');
+        setTimeout(() => scoreEl.classList.remove('score-change'), 500);
     }
-}
+};
 
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
-
     const now = Date.now();
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
@@ -82,9 +78,9 @@ function renderUI() {
             <span class="crown-icon">👑</span>
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
-                    ${isLocked ? 'disabled' : ''} 
-                    onclick="subtract(${p.id})">×</button>
+            <button class="minus-btn" ${isLocked ? 'disabled' : ''} onclick="subtract(${p.id})">
+                <span>×</span>
+            </button>
             <div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>
         `;
         grid.appendChild(card);
@@ -117,9 +113,10 @@ function startTimer() {
     }, 1000);
 }
 
-// Shaxsiy taymerlar har sekundda yangilanib turishi uchun
 setInterval(() => {
-    if (participants.some(p => p.nextAllowedTime && Date.now() < p.nextAllowedTime)) {
+    const now = Date.now();
+    const hasActiveCooldown = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
+    if (hasActiveCooldown) {
         renderUI();
     }
 }, 1000);
@@ -129,18 +126,23 @@ function showRefreshUI() {
     if (startBtn) startBtn.style.display = 'none';
 }
 
-startBtn.onclick = () => {
-    if (confirm("6 kunlik challenge boshlansinmi?")) {
-        endTime = Date.now() + CHALLENGE_DURATION;
-        saveData();
-        loadData();
-    }
-};
+if (startBtn) {
+    startBtn.onclick = () => {
+        if (confirm("6 kunlik challenge boshlansinmi?")) {
+            endTime = Date.now() + CHALLENGE_DURATION;
+            saveData();
+            loadData();
+        }
+    };
+}
 
-saveBtn.onclick = () => { saveData(); alert("Saqlandi!"); };
-refreshBtn.onclick = () => { if (confirm("Qayta boshlaysizmi?")) { localStorage.clear(); location.reload(); } };
-infoBtn.onclick = () => modal.style.display = "block";
-document.querySelector(".close-modal").onclick = () => modal.style.display = "none";
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar muvaffaqiyatli saqlandi!"); };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Hamma ma'lumotlarni o'chirib, qayta boshlaysizmi?")) { localStorage.clear(); location.reload(); } };
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
+
+const closeBtn = document.querySelector(".close-modal");
+if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
+
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
