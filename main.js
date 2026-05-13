@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 13, lastPenalty: 0 },
-    { id: 2, name: "Jonibek Sulaymonov", score: 13, lastPenalty: 0 },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, lastPenalty: 0 },
-    { id: 4, name: "Ansor G'ulomov", score: 11, lastPenalty: 0 }
+    { id: 1, name: "Suxrob Erkinov", score: 15 },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15 },
+    { id: 3, name: "Otabek Sulaymonov", score: 15 },
+    { id: 4, name: "Ansor G'ulomov", score: 15 }
 ];
 
 let timerInterval;
@@ -15,23 +15,17 @@ const COOLDOWN_TIME = 30 * 60 * 1000;
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
-const detailsBtn = document.getElementById('detailsBtn');
+const saveBtn = document.getElementById('saveBtn');
+const refreshBtn = document.getElementById('refreshBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 
-async function saveData() {
+function saveData() {
     const data = { participants, endTime, nextSubtractTime };
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
-    try {
-        await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-    } catch (e) { }
 }
 
-async function loadData() {
+function loadData() {
     const local = localStorage.getItem('swearing_challenge_backup');
     if (local) {
         const parsed = JSON.parse(local);
@@ -39,21 +33,14 @@ async function loadData() {
         endTime = parsed.endTime;
         nextSubtractTime = parsed.nextSubtractTime;
     }
-    try {
-        const response = await fetch('/api/load');
-        if (response.ok) {
-            const serverData = await response.json();
-            if (serverData.endTime) {
-                participants = serverData.participants;
-                endTime = serverData.endTime;
-                nextSubtractTime = serverData.nextSubtractTime;
-            }
-        }
-    } catch (e) { }
 
     if (endTime) {
-        startBtn.disabled = true;
-        startTimer();
+        if (Date.now() < endTime) {
+            startBtn.style.display = 'none';
+            startTimer();
+        } else {
+            showRefreshUI();
+        }
     }
 
     if (nextSubtractTime && Date.now() < nextSubtractTime) {
@@ -66,31 +53,32 @@ function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
     const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
+    const isFinished = endTime && Date.now() >= endTime;
 
-    participants.forEach((p, index) => {
+    participants.forEach(p => {
         const card = document.createElement('div');
         card.className = `card ${p.score <= 0 ? 'out' : ''}`;
         card.innerHTML = `
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
-                    ${isLocked ? 'disabled' : ''} 
-                    onclick="subtract(${p.id}, ${index})">×</button>
+            <button class="minus-btn ${isLocked || isFinished ? 'disabled-btn' : ''}" 
+                    ${isLocked || isFinished ? 'disabled' : ''} 
+                    onclick="subtract(${p.id})">×</button>
             <div class="cooldown-label"></div>
         `;
         grid.appendChild(card);
     });
 }
 
-window.subtract = function (id, index) {
+window.subtract = function (id) {
     const now = Date.now();
+    if (endTime && now >= endTime) return;
     if (nextSubtractTime && now < nextSubtractTime) return;
 
     const p = participants.find(x => x.id === id);
     if (p && p.score > 0) {
         p.score--;
         nextSubtractTime = now + COOLDOWN_TIME;
-
         saveData();
         renderUI();
         startCooldownTimer();
@@ -110,13 +98,13 @@ function startCooldownTimer() {
         if (timeLeft <= 0) {
             clearInterval(cooldownInterval);
             nextSubtractTime = null;
-            saveData();
             renderUI();
         } else {
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
-            const timeStr = `Kutish: ${m}:${String(s).padStart(2, '0')}`;
-            document.querySelectorAll('.cooldown-label').forEach(el => el.innerText = timeStr);
+            document.querySelectorAll('.cooldown-label').forEach(el => {
+                el.innerText = `Kutish: ${m}:${String(s).padStart(2, '0')}`;
+            });
         }
     }, 1000);
 }
@@ -124,41 +112,52 @@ function startCooldownTimer() {
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        const timeLeft = endTime - Date.now();
+        const now = Date.now();
+        const timeLeft = endTime - now;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
+            showRefreshUI();
         } else {
-            const s = Math.floor(timeLeft / 1000);
-            const d = Math.floor(s / 86400);
-            const h = Math.floor((s % 86400) / 3600);
-            const m = Math.floor((s % 3600) / 60);
-            const sec = s % 60;
-            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            const d = Math.floor(timeLeft / 86400000);
+            const h = Math.floor((timeLeft % 86400000) / 3600000);
+            const m = Math.floor((timeLeft % 3600000) / 60000);
+            const s = Math.floor((timeLeft % 60000) / 1000);
+            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
     }, 1000);
 }
 
-startBtn.onclick = async () => {
+function showRefreshUI() {
+    if (refreshBtn) refreshBtn.style.display = 'block';
+    if (startBtn) startBtn.style.display = 'none';
+    renderUI();
+}
+
+startBtn.onclick = () => {
     if (confirm("6 kunlik challenge boshlansinmi?")) {
         endTime = Date.now() + CHALLENGE_DURATION;
-        startBtn.disabled = true;
-        await saveData();
+        startBtn.style.display = 'none';
+        saveData();
         startTimer();
+        renderUI();
     }
 };
 
-if (detailsBtn) {
-    detailsBtn.onclick = () => {
-        let r = "ISHTIROKCHILAR:\n";
-        participants.forEach(p => r += `${p.name}: ${p.score} ball\n`);
-        alert(r);
-    };
-}
+saveBtn.onclick = () => {
+    saveData();
+    alert("Natijalar saqlandi!");
+};
 
-if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
-const closeBtn = document.querySelector(".close-modal");
-if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
+refreshBtn.onclick = () => {
+    if (confirm("Challenge tugadi. Hammasini noldan boshlaysizmi? Ballar 15 taga qaytadi.")) {
+        localStorage.removeItem('swearing_challenge_backup');
+        location.reload();
+    }
+};
+
+infoBtn.onclick = () => modal.style.display = "block";
+document.querySelector(".close-modal").onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
