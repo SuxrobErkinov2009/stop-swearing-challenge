@@ -156,3 +156,19 @@ if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
+
+
+window.decreaseScore = function (index) {
+    const now = Date.now();
+    if (participants[index].score > 0 && (now - participants[index].lastPenalty >= COOLDOWN_TIME)) {
+        participants[index].score -= 1;
+        participants[index].lastPenalty = now;
+
+        saveData();
+        renderParticipants();
+
+        const scoreElement = document.querySelectorAll('.score-box')[index];
+        scoreElement.classList.add('score-change');
+        setTimeout(() => scoreElement.classList.remove('score-change'), 500);
+    }
+};
