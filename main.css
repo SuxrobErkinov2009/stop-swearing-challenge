@@ -119,6 +119,20 @@ body {
     display: block;
 }
 
+.crown-icon {
+    position: absolute;
+    top: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 50px;
+    display: none;
+    z-index: 100;
+}
+
+.card.leader .crown-icon {
+    display: block !important;
+}
+
 @keyframes crown-float {
 
     0%,
