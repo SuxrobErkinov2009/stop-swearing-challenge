@@ -157,6 +157,14 @@ body {
     justify-content: center;
 }
 
+.nimadir2{
+    color: rgb(30, 30, 255);
+}
+
+.nimadir{
+    color: #db0016;
+}
+
 .main-btn {
     padding: 12px 30px;
     font-size: 16px;
