@@ -23,22 +23,28 @@ const startBtn = document.getElementById('startTimerBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 
+const defaultData = {
+    participants: [
+        { id: 1, name: "Suxrob Erkinov", score: 10, nextAllowedTime: null },
+        { id: 2, name: "Jonibek Sulaymonov", score: 10, nextAllowedTime: null },
+        { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
+        { id: 4, name: "Ansor G'ulomov", score: 9, nextAllowedTime: null }
+    ],
+    endTime: Date.now() + (3 * 24 * 60 * 60 * 1000)
+};
+
 db.ref('challenge_data').on('value', (snapshot) => {
     const data = snapshot.val();
-    if (data) {
-        participants = data.participants || [];
-        endTime = data.endTime || null;
+    if (data && data.participants) {
+        participants = data.participants;
+        endTime = data.endTime;
         renderUI();
         if (endTime) {
             if (startBtn) startBtn.style.display = 'none';
             startTimer();
         }
     } else {
-        const local = localStorage.getItem('swearing_challenge_backup');
-        if (local) {
-            const parsed = JSON.parse(local);
-            db.ref('challenge_data').set(parsed);
-        }
+        db.ref('challenge_data').set(defaultData);
     }
 });
 
