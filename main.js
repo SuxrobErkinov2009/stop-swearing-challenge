@@ -1,15 +1,14 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15 },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15 },
-    { id: 3, name: "Otabek Sulaymonov", score: 15 },
-    { id: 4, name: "Ansor G'ulomov", score: 15 }
+    { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
 ];
 
-let timerInterval, cooldownInterval;
+let timerInterval;
 let endTime = null;
-let nextSubtractTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 30 * 60 * 1000; // 30 minut cooldown
+const COOLDOWN_TIME = 10 * 60 * 1000; // 10 minut shaxsiy cooldown
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -20,7 +19,7 @@ const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 
 function saveData() {
-    const data = { participants, endTime, nextSubtractTime };
+    const data = { participants, endTime };
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 }
 
@@ -30,7 +29,6 @@ function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants;
         endTime = parsed.endTime;
-        nextSubtractTime = parsed.nextSubtractTime;
     }
 
     if (endTime) {
@@ -41,53 +39,22 @@ function loadData() {
             showRefreshUI();
         }
     }
-
-    if (nextSubtractTime && Date.now() < nextSubtractTime) {
-        startCooldownTimer();
-    }
     renderUI();
-}
-
-function renderUI() {
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
-    const isFinished = endTime && Date.now() >= endTime;
-
-    const maxScore = Math.max(...participants.map(p => p.score));
-
-    participants.forEach(p => {
-        const card = document.createElement('div');
-        const isLeader = p.score === maxScore && p.score > 0;
-
-        card.className = `card ${isLeader ? 'leader' : ''}`;
-
-        card.innerHTML = `
-            <span class="crown-icon">👑</span>
-            <h3>${p.name}</h3>
-            <div class="score-box">${p.score}</div>
-            <button class="minus-btn ${isLocked || isFinished ? 'disabled-btn' : ''}" 
-                    ${isLocked || isFinished ? 'disabled' : ''} 
-                    onclick="subtract(${p.id})">×</button>
-            <div class="cooldown-label"></div>
-        `;
-        grid.appendChild(card);
-    });
 }
 
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
-    if (nextSubtractTime && now < nextSubtractTime) return;
 
     const p = participants.find(x => x.id === id);
+    if (p && p.nextAllowedTime && now < p.nextAllowedTime) return;
+
     if (p && p.score > 0) {
         p.score--;
-        nextSubtractTime = now + COOLDOWN_TIME;
+        p.nextAllowedTime = now + COOLDOWN_TIME;
         saveData();
         renderUI();
-        startCooldownTimer();
+
         const scoreBox = document.getElementById(`score-${id}`);
         if (scoreBox) {
             scoreBox.classList.add('score-change');
@@ -96,23 +63,39 @@ window.subtract = function (id) {
     }
 }
 
-function startCooldownTimer() {
-    if (cooldownInterval) clearInterval(cooldownInterval);
-    cooldownInterval = setInterval(() => {
-        const timeLeft = nextSubtractTime - Date.now();
-        if (timeLeft <= 0) {
-            clearInterval(cooldownInterval);
-            nextSubtractTime = null;
-            renderUI();
-        } else {
-            const h = Math.floor(timeLeft / 3600000);
-            const m = Math.floor((timeLeft % 3600000) / 60000);
-            const s = Math.floor((timeLeft % 60000) / 1000);
-            document.querySelectorAll('.cooldown-label').forEach(el => {
-                el.innerText = `Keyingi imkoniyat: ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-            });
-        }
-    }, 1000);
+function renderUI() {
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const now = Date.now();
+    const scores = participants.map(p => p.score);
+    const maxScore = Math.max(...scores);
+
+    participants.forEach(p => {
+        const card = document.createElement('div');
+        const isLeader = p.score === maxScore && p.score > 0;
+        const isLocked = p.nextAllowedTime && now < p.nextAllowedTime;
+
+        card.className = `card ${isLeader ? 'leader' : ''}`;
+
+        card.innerHTML = `
+            <span class="crown-icon">👑</span>
+            <h3>${p.name}</h3>
+            <div class="score-box" id="score-${p.id}">${p.score}</div>
+            <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
+                    ${isLocked ? 'disabled' : ''} 
+                    onclick="subtract(${p.id})">×</button>
+            <div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
 function startTimer() {
@@ -133,6 +116,13 @@ function startTimer() {
         }
     }, 1000);
 }
+
+// Shaxsiy taymerlar har sekundda yangilanib turishi uchun
+setInterval(() => {
+    if (participants.some(p => p.nextAllowedTime && Date.now() < p.nextAllowedTime)) {
+        renderUI();
+    }
+}, 1000);
 
 function showRefreshUI() {
     if (refreshBtn) refreshBtn.style.display = 'block';

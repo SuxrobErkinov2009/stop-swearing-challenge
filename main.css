@@ -189,6 +189,83 @@ body {
 
 
 
+.card {
+    background: #151515;
+    border-radius: 20px;
+    padding: 45px 20px 20px 20px;
+    text-align: center;
+    border: 2px solid #333;
+    position: relative;
+    overflow: visible !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.card.leader {
+    border-color: #ffd700;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+}
+
+.crown-icon {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 50px;
+    z-index: 100;
+    display: none;
+    line-height: 1;
+}
+
+.card.leader .crown-icon {
+    display: block !important;
+}
+
+.score-box {
+    font-size: 55px;
+    font-weight: 800;
+    color: #00d4ff;
+    text-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.minus-btn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #ff4757;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3);
+}
+
+.disabled-btn {
+    background: #222 !important;
+    color: #444 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+
+.cooldown-label {
+    height: 20px;
+    font-size: 14px;
+    color: #ff4757;
+    font-weight: bold;
+}
+
+
+
+
+
+
+
+
+
+
 
 @keyframes fire-pop {
     0% {
