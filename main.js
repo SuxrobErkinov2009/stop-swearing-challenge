@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 13 },
-    { id: 2, name: "Jonibek Sulaymonov", score: 13 },
-    { id: 3, name: "Otabek Sulaymonov", score: 15 },
-    { id: 4, name: "Ansor G'ulomov", score: 11 }
+    { id: 1, name: "Suxrob Erkinov", score: 13, lastPenalty: 0 },
+    { id: 2, name: "Jonibek Sulaymonov", score: 13, lastPenalty: 0 },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, lastPenalty: 0 },
+    { id: 4, name: "Ansor G'ulomov", score: 11, lastPenalty: 0 }
 ];
 
 let timerInterval;
@@ -18,7 +18,6 @@ const startBtn = document.getElementById('startTimerBtn');
 const detailsBtn = document.getElementById('detailsBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
-document.getElementById('refreshBtn').style.display = 'block';
 
 async function saveData() {
     const data = { participants, endTime, nextSubtractTime };
@@ -68,7 +67,7 @@ function renderUI() {
     grid.innerHTML = '';
     const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
 
-    participants.forEach(p => {
+    participants.forEach((p, index) => {
         const card = document.createElement('div');
         card.className = `card ${p.score <= 0 ? 'out' : ''}`;
         card.innerHTML = `
@@ -76,23 +75,31 @@ function renderUI() {
             <div class="score-box" id="score-${p.id}">${p.score}</div>
             <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
                     ${isLocked ? 'disabled' : ''} 
-                    onclick="subtract(${p.id})">×</button>
+                    onclick="subtract(${p.id}, ${index})">×</button>
             <div class="cooldown-label"></div>
         `;
         grid.appendChild(card);
     });
 }
 
-window.subtract = function (id) {
-    if (nextSubtractTime && Date.now() < nextSubtractTime) return;
+window.subtract = function (id, index) {
+    const now = Date.now();
+    if (nextSubtractTime && now < nextSubtractTime) return;
 
     const p = participants.find(x => x.id === id);
     if (p && p.score > 0) {
         p.score--;
-        nextSubtractTime = Date.now() + COOLDOWN_DURATION;
+        nextSubtractTime = now + COOLDOWN_TIME;
+
         saveData();
         renderUI();
         startCooldownTimer();
+
+        const scoreBox = document.getElementById(`score-${id}`);
+        if (scoreBox) {
+            scoreBox.classList.add('score-change');
+            setTimeout(() => scoreBox.classList.remove('score-change'), 500);
+        }
     }
 }
 
@@ -106,10 +113,9 @@ function startCooldownTimer() {
             saveData();
             renderUI();
         } else {
-            const h = Math.floor(timeLeft / 3600000);
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
-            const timeStr = `Keyingi imkoniyat: ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            const timeStr = `Kutish: ${m}:${String(s).padStart(2, '0')}`;
             document.querySelectorAll('.cooldown-label').forEach(el => el.innerText = timeStr);
         }
     }, 1000);
@@ -156,40 +162,3 @@ if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
-
-
-window.decreaseScore = function (index) {
-    const now = Date.now();
-    if (participants[index].score > 0 && (now - participants[index].lastPenalty >= COOLDOWN_TIME)) {
-        participants[index].score -= 1;
-        participants[index].lastPenalty = now;
-
-        saveData();
-        renderParticipants();
-
-        const scoreElement = document.querySelectorAll('.score-box')[index];
-        scoreElement.classList.add('score-change');
-        setTimeout(() => scoreElement.classList.remove('score-change'), 500);
-    }
-};
-
-window.decreaseScore = function (index) {
-    const now = Date.now();
-    const p = participants[index];
-
-    if (p.score > 0 && (now - p.lastPenalty >= COOLDOWN_TIME)) {
-        p.score -= 1;
-        p.lastPenalty = now;
-
-        saveData();
-        renderParticipants();
-
-        const scoreBoxes = document.querySelectorAll('.score-box');
-        if (scoreBoxes[index]) {
-            scoreBoxes[index].classList.add('score-change');
-            setTimeout(() => {
-                scoreBoxes[index].classList.remove('score-change');
-            }, 500);
-        }
-    }
-};
