@@ -4,13 +4,23 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^5.2.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SuxrobErkinov2009/stop-swearing-challenge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SuxrobErkinov2009/stop-swearing-challenge/issues"
+  },
+  "homepage": "https://github.com/SuxrobErkinov2009/stop-swearing-challenge#readme"
 }
