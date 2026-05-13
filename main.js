@@ -72,7 +72,7 @@ function renderUI() {
         const isLeader = p.score === maxScore && p.score > 0;
         const isLocked = p.nextAllowedTime && now < p.nextAllowedTime;
 
-        card.className = `card ${isLeader ? 'leader' : ''}`;
+        card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
 
         card.innerHTML = `
             <span class="crown-icon">👑</span>
@@ -115,8 +115,8 @@ function startTimer() {
 
 setInterval(() => {
     const now = Date.now();
-    const hasActiveCooldown = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
-    if (hasActiveCooldown) {
+    const needsUpdate = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
+    if (needsUpdate) {
         renderUI();
     }
 }, 1000);
@@ -136,13 +136,12 @@ if (startBtn) {
     };
 }
 
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar muvaffaqiyatli saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Hamma ma'lumotlarni o'chirib, qayta boshlaysizmi?")) { localStorage.clear(); location.reload(); } };
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Tozalash?")) { localStorage.clear(); location.reload(); } };
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
 
 const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
-
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();

@@ -404,6 +404,218 @@ body {
 
 
 
+:root {
+    --gold: #ffd700;
+    --gold-glow: rgba(255, 215, 255, 0.4);
+    --bg-dark: #0a0a0a;
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --accent: #00d4ff;
+}
+
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 50px 24px 30px 24px;
+    text-align: center;
+    position: relative;
+    overflow: visible !important;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.card.leader {
+    border: 1px solid var(--gold);
+    background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.01));
+    box-shadow: 0 0 40px var(--gold-glow);
+    transform: translateY(-10px) scale(1.02);
+}
+
+.normal-card {
+    animation: glassPulse 5s infinite alternate ease-in-out;
+}
+
+@keyframes glassPulse {
+    0% {
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    100% {
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+    }
+}
+
+.crown-icon {
+    position: absolute;
+    top: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 55px;
+    z-index: 100;
+    filter: drop-shadow(0 0 15px var(--gold));
+    animation: crownFloat 3s infinite ease-in-out;
+    display: none;
+}
+
+.card.leader .crown-icon {
+    display: block;
+}
+
+@keyframes crownFloat {
+
+    0%,
+    100% {
+        transform: translateX(-50%) translateY(0) rotate(-5deg);
+    }
+
+    50% {
+        transform: translateX(-50%) translateY(-15px) rotate(5deg);
+    }
+}
+
+.score-box {
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    margin: 10px 0;
+}
+
+.minus-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff4757, #ff6b81);
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(255, 71, 87, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.minus-btn:hover:not(:disabled) {
+    transform: rotate(90deg) scale(1.1);
+}
+
+.minus-btn:disabled {
+    background: #222;
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.cooldown-label {
+    margin-top: 15px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ff4757;
+    height: 20px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+}
+
+.modal-content {
+    background: linear-gradient(165deg, #1a1a1a 0%, #050505 100%);
+    margin: 5% auto;
+    width: 90%;
+    max-width: 650px;
+    border-radius: 35px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nimadir {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffd700;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 40px;
+}
+
+.nimadir2 {
+    color: #00d4ff;
+    font-size: 20px;
+    margin-top: 25px;
+}
+
+.modal-body p {
+    color: #bbb;
+    line-height: 1.7;
+}
+
+.quote {
+    font-style: italic;
+    color: #ffd700;
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 215, 0, 0.2);
+    margin-top: 30px;
+}
+
+.close-modal {
+    font-size: 35px;
+    color: #555;
+    cursor: pointer;
+}
+
+@keyframes scorePop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.4);
+        color: #ff4757;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.score-change {
+    animation: scorePop 0.5s ease-out;
+}
+
+
+
+
+
+
+
+
 
 
 
