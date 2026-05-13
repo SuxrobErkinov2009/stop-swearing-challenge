@@ -51,13 +51,20 @@ function loadData() {
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
+
     const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
     const isFinished = endTime && Date.now() >= endTime;
 
+    const maxScore = Math.max(...participants.map(p => p.score));
+
     participants.forEach(p => {
         const card = document.createElement('div');
-        card.className = `card ${p.score <= 0 ? 'out' : ''}`;
+        const isLeader = p.score === maxScore && p.score > 0;
+
+        card.className = `card ${p.score <= 0 ? 'out' : ''} ${isLeader ? 'leader' : ''}`;
+
         card.innerHTML = `
+            <i class="bi bi-crown-fill crown-icon"></i>
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
             <button class="minus-btn ${isLocked || isFinished ? 'disabled-btn' : ''}" 
