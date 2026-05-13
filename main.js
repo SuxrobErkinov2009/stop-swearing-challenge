@@ -1,57 +1,63 @@
-let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
-];
+const firebaseConfig = {
+    apiKey: "AIzaSyCu5I_oC72GIwHAq7nv5WObBnwdQm0kV_c",
+    authDomain: "challenge-4a52a.firebaseapp.com",
+    databaseURL: "https://challenge-4a52a-default-rtdb.firebaseio.com",
+    projectId: "challenge-4a52a",
+    storageBucket: "challenge-4a52a.firebasestorage.app",
+    messagingSenderId: "731273715252",
+    appId: "1:731273715252:web:2a23a82a48994391263461",
+    measurementId: "G-0T1DYQ65SS"
+};
 
-let timerInterval;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let participants = [];
 let endTime = null;
-const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
+let timerInterval;
 const COOLDOWN_TIME = 10 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
-const saveBtn = document.getElementById('saveBtn');
-const refreshBtn = document.getElementById('refreshBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 
-function saveData() {
-    const data = { participants, endTime };
-    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
-}
-
-function loadData() {
-    const local = localStorage.getItem('swearing_challenge_backup');
-    if (local) {
-        const parsed = JSON.parse(local);
-        participants = parsed.participants;
-        endTime = parsed.endTime;
-    }
-    if (endTime) {
-        if (Date.now() < endTime) {
+db.ref('challenge_data').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        participants = data.participants || [];
+        endTime = data.endTime || null;
+        renderUI();
+        if (endTime) {
             if (startBtn) startBtn.style.display = 'none';
             startTimer();
-        } else {
-            showRefreshUI();
+        }
+    } else {
+        const local = localStorage.getItem('swearing_challenge_backup');
+        if (local) {
+            const parsed = JSON.parse(local);
+            db.ref('challenge_data').set(parsed);
         }
     }
-    renderUI();
-}
+});
 
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
 
-    const p = participants.find(x => x.id === id);
-    if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
+    const pIndex = participants.findIndex(x => x.id === id);
+    if (pIndex === -1) return;
+
+    const p = participants[pIndex];
+    if ((p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
     p.score--;
     p.nextAllowedTime = now + COOLDOWN_TIME;
-    saveData();
-    renderUI();
+
+    db.ref('challenge_data').update({
+        participants: participants
+    });
 
     const scoreEl = document.getElementById(`score-${id}`);
     if (scoreEl) {
@@ -65,7 +71,7 @@ function renderUI() {
     grid.innerHTML = '';
     const now = Date.now();
     const scores = participants.map(p => p.score);
-    const maxScore = Math.max(...scores);
+    const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
 
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -73,7 +79,6 @@ function renderUI() {
         const isLocked = p.nextAllowedTime && now < p.nextAllowedTime;
 
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
-
         card.innerHTML = `
             <span class="crown-icon">👑</span>
             <h3>${p.name}</h3>
@@ -102,7 +107,6 @@ function startTimer() {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
-            showRefreshUI();
         } else {
             const d = Math.floor(timeLeft / 86400000);
             const h = Math.floor((timeLeft % 86400000) / 3600000);
@@ -115,33 +119,12 @@ function startTimer() {
 
 setInterval(() => {
     const now = Date.now();
-    const needsUpdate = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
-    if (needsUpdate) {
+    if (participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime)) {
         renderUI();
     }
 }, 1000);
 
-function showRefreshUI() {
-    if (refreshBtn) refreshBtn.style.display = 'block';
-    if (startBtn) startBtn.style.display = 'none';
-}
-
-if (startBtn) {
-    startBtn.onclick = () => {
-        if (confirm("6 kunlik challenge boshlansinmi?")) {
-            endTime = Date.now() + CHALLENGE_DURATION;
-            saveData();
-            loadData();
-        }
-    };
-}
-
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Tozalash?")) { localStorage.clear(); location.reload(); } };
-if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
-
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
-
-loadData();
