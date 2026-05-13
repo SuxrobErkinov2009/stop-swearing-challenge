@@ -10,7 +10,7 @@ let cooldownInterval;
 let endTime = null;
 let nextSubtractTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 30 * 60 * 1000;
+const COOLDOWN_TIME = 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
