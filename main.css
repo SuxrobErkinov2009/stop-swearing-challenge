@@ -19,7 +19,6 @@ body {
     padding: 0 20px;
 }
 
-/* Header qismi */
 .header {
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
@@ -66,7 +65,6 @@ body {
     box-shadow: 0 0 20px #0051ff;
 }
 
-/* Kartochkalar Gridi - Kompyuterda 4 ta bir qatorda */
 #participants-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -154,7 +152,6 @@ body {
     font-weight: bold;
 }
 
-/* Pastki tugmalar */
 .controls {
     margin: 40px 0;
     display: flex;
@@ -195,7 +192,6 @@ body {
     box-shadow: 0 5px 15px rgba(0, 114, 255, 0.3);
 }
 
-/* Modal oynasi */
 .modal {
     display: none;
     position: fixed;
@@ -237,16 +233,12 @@ body {
 
 .close-modal { font-size: 28px; cursor: pointer; color: #888; }
 
-/* Responsive Media Queries */
-
-/* Planshetlar uchun (1024px gacha) */
 @media (max-width: 1024px) {
     #participants-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2 tadan joylashadi */
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* Kichik planshet va telefonlar uchun (768px gacha) */
 @media (max-width: 768px) {
     .header__wrapper {
         flex-direction: column;
@@ -258,7 +250,7 @@ body {
     }
 
     #participants-grid {
-        grid-template-columns: 1fr; /* 1 tadan (ustun shaklida) */
+        grid-template-columns: 1fr;
         max-width: 400px;
         margin-left: auto;
         margin-right: auto;
@@ -269,7 +261,6 @@ body {
     }
 }
 
-/* Juda kichik telefonlar uchun */
 @media (max-width: 480px) {
     .timer-display {
         font-size: 1.2rem;
@@ -298,7 +289,6 @@ body {
     padding: 0 20px;
 }
 
-/* Header qismi */
 .header {
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
@@ -345,7 +335,6 @@ body {
     box-shadow: 0 0 20px #0051ff;
 }
 
-/* Kartochkalar Gridi - Kompyuterda 4 ta bir qatorda */
 #participants-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -436,7 +425,6 @@ body {
     font-weight: bold;
 }
 
-/* Pastki tugmalar */
 .controls {
     margin: 40px 0;
     display: flex;
@@ -480,7 +468,6 @@ body {
     box-shadow: 0 5px 15px rgba(0, 114, 255, 0.3);
 }
 
-/* Modal oynasi */
 .modal {
     display: none;
     position: fixed;
@@ -536,40 +523,30 @@ body {
     color: #888;
 }
 
-/* Ekranni qora qiladigan overlay-ni butkul o'chiramiz */
 .overlay {
     display: none !important;
-    /* Bu endi ekranni qoplamaydi */
 }
 
-/* Pastdagi tugmalar joylashuvi */
 .bottom-controls {
     display: flex;
     flex-direction: column;
-    /* Tugmalarni ustma-ust qiladi */
     align-items: center;
     padding: 30px 0;
     gap: 10px;
 }
 
 #refreshBtn {
-    /* Bu tugma faqat o'yin tugaganda ko'rinishi uchun JS orqali boshqariladi */
     background: #0051ff;
     color: white;
     box-shadow: 0 0 15px rgba(0, 81, 255, 0.5);
 }
 
-/* Responsive Media Queries */
-
-/* Planshetlar uchun (1024px gacha) */
 @media (max-width: 1024px) {
     #participants-grid {
         grid-template-columns: repeat(2, 1fr);
-        /* 2 tadan joylashadi */
     }
 }
 
-/* Kichik planshet va telefonlar uchun (768px gacha) */
 @media (max-width: 768px) {
     .header__wrapper {
         flex-direction: column;
@@ -582,7 +559,6 @@ body {
 
     #participants-grid {
         grid-template-columns: 1fr;
-        /* 1 tadan (ustun shaklida) */
         max-width: 400px;
         margin-left: auto;
         margin-right: auto;
@@ -593,7 +569,6 @@ body {
     }
 }
 
-/* Juda kichik telefonlar uchun */
 @media (max-width: 480px) {
     .timer-display {
         font-size: 1.2rem;
