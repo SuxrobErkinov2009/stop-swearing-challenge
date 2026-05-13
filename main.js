@@ -25,12 +25,12 @@ const modal = document.getElementById("infoModal");
 
 const defaultData = {
     participants: [
-        { id: 1, name: "Suxrob Erkinov", score: 10, nextAllowedTime: null },
-        { id: 2, name: "Jonibek Sulaymonov", score: 10, nextAllowedTime: null },
+        { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
+        { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
         { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
-        { id: 4, name: "Ansor G'ulomov", score: 9, nextAllowedTime: null }
+        { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
     ],
-    endTime: Date.now() + (3 * 24 * 60 * 60 * 1000)
+    endTime: Date.now() + (6 * 24 * 60 * 60 * 1000)
 };
 
 db.ref('challenge_data').on('value', (snapshot) => {
