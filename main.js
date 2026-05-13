@@ -48,33 +48,20 @@ function loadData() {
     renderUI();
 }
 
-function renderUI() {
-    if (!grid) return;
-    grid.innerHTML = '';
+participants.forEach(p => {
+    const card = document.createElement('div');
+    const isLeader = p.score === maxScore && p.score > 0;
 
-    const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
-    const isFinished = endTime && Date.now() >= endTime;
+    card.className = `card ${p.score <= 0 ? 'out' : ''} ${isLeader ? 'leader' : ''}`;
 
-    const maxScore = Math.max(...participants.map(p => p.score));
-
-    participants.forEach(p => {
-        const card = document.createElement('div');
-        const isLeader = p.score === maxScore && p.score > 0;
-
-        card.className = `card ${p.score <= 0 ? 'out' : ''} ${isLeader ? 'leader' : ''}`;
-
-        card.innerHTML = `
-            <i class="bi bi-crown-fill crown-icon"></i>
-            <h3>${p.name}</h3>
-            <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn ${isLocked || isFinished ? 'disabled-btn' : ''}" 
-                    ${isLocked || isFinished ? 'disabled' : ''} 
-                    onclick="subtract(${p.id})">×</button>
-            <div class="cooldown-label"></div>
-        `;
-        grid.appendChild(card);
-    });
-}
+    card.innerHTML = `
+        <span class="crown-icon">👑</span> <h3>${p.name}</h3>
+        <div class="score-box">${p.score}</div>
+        <button class="minus-btn" onclick="subtract(${p.id})">×</button>
+        <div class="cooldown-label"></div>
+    `;
+    grid.appendChild(card);
+});
 
 window.subtract = function (id) {
     const now = Date.now();
