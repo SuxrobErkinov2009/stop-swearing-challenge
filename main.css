@@ -153,11 +153,8 @@ body {
 }
 
 .controls {
-    margin: 40px 0;
     display: flex;
     justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
 }
 
 .main-btn {
