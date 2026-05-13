@@ -96,55 +96,6 @@ body {
     animation: fire-pop 0.6s ease-out;
 }
 
-.card.leader {
-    border-color: #ffd700 !important;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-    position: relative;
-}
-
-.crown-icon {
-    position: absolute;
-    top: -45px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 50px;
-    color: #ffd700;
-    z-index: 100;
-    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.7));
-    animation: crown-float 2s infinite ease-in-out;
-    display: none;
-}
-
-.card.leader .crown-icon {
-    display: block;
-}
-
-.crown-icon {
-    position: absolute;
-    top: -45px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 50px;
-    display: none;
-    z-index: 100;
-}
-
-.card.leader .crown-icon {
-    display: block !important;
-}
-
-@keyframes crown-float {
-
-    0%,
-    100% {
-        transform: translateX(-50%) translateY(0);
-    }
-
-    50% {
-        transform: translateX(-50%) translateY(-10px);
-    }
-}
-
 @keyframes fire-pop {
     0% {
         transform: scale(1);
