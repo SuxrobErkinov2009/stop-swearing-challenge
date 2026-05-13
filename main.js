@@ -172,3 +172,24 @@ window.decreaseScore = function (index) {
         setTimeout(() => scoreElement.classList.remove('score-change'), 500);
     }
 };
+
+window.decreaseScore = function (index) {
+    const now = Date.now();
+    const p = participants[index];
+
+    if (p.score > 0 && (now - p.lastPenalty >= COOLDOWN_TIME)) {
+        p.score -= 1;
+        p.lastPenalty = now;
+
+        saveData();
+        renderParticipants();
+
+        const scoreBoxes = document.querySelectorAll('.score-box');
+        if (scoreBoxes[index]) {
+            scoreBoxes[index].classList.add('score-change');
+            setTimeout(() => {
+                scoreBoxes[index].classList.remove('score-change');
+            }, 500);
+        }
+    }
+};
