@@ -5,12 +5,11 @@ let participants = [
     { id: 4, name: "Ansor G'ulomov", score: 15 }
 ];
 
-let timerInterval;
-let cooldownInterval;
+let timerInterval, cooldownInterval;
 let endTime = null;
 let nextSubtractTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 10 * 1000;
+const COOLDOWN_TIME = 30 * 60 * 1000; // 30 minut cooldown
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -82,7 +81,6 @@ window.subtract = function (id) {
         saveData();
         renderUI();
         startCooldownTimer();
-
         const scoreBox = document.getElementById(`score-${id}`);
         if (scoreBox) {
             scoreBox.classList.add('score-change');
@@ -100,10 +98,11 @@ function startCooldownTimer() {
             nextSubtractTime = null;
             renderUI();
         } else {
+            const h = Math.floor(timeLeft / 3600000);
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
             document.querySelectorAll('.cooldown-label').forEach(el => {
-                el.innerText = `Kutish: ${m}:${String(s).padStart(2, '0')}`;
+                el.innerText = `Keyingi imkoniyat: ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
             });
         }
     }, 1000);
@@ -131,31 +130,18 @@ function startTimer() {
 function showRefreshUI() {
     if (refreshBtn) refreshBtn.style.display = 'block';
     if (startBtn) startBtn.style.display = 'none';
-    renderUI();
 }
 
 startBtn.onclick = () => {
     if (confirm("6 kunlik challenge boshlansinmi?")) {
         endTime = Date.now() + CHALLENGE_DURATION;
-        startBtn.style.display = 'none';
         saveData();
-        startTimer();
-        renderUI();
+        loadData();
     }
 };
 
-saveBtn.onclick = () => {
-    saveData();
-    alert("Natijalar saqlandi!");
-};
-
-refreshBtn.onclick = () => {
-    if (confirm("Challenge tugadi. Hammasini noldan boshlaysizmi? Ballar 15 taga qaytadi.")) {
-        localStorage.removeItem('swearing_challenge_backup');
-        location.reload();
-    }
-};
-
+saveBtn.onclick = () => { saveData(); alert("Saqlandi!"); };
+refreshBtn.onclick = () => { if (confirm("Qayta boshlaysizmi?")) { localStorage.clear(); location.reload(); } };
 infoBtn.onclick = () => modal.style.display = "block";
 document.querySelector(".close-modal").onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
