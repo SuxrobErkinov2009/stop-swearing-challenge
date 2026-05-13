@@ -1,158 +1,127 @@
+const INITIAL_SCORE = 15;
+const COOLDOWN_TIME = 30 * 60 * 1000;
+const TOTAL_CHALLENGE_TIME = 6 * 24 * 60 * 60 * 1000;
+
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 13 },
-    { id: 2, name: "Jonibek Sulaymonov", score: 13 },
-    { id: 3, name: "Otabek Sulaymonov", score: 15 },
-    { id: 4, name: "Ansor G'ulomov", score: 11 }
+    { name: "Suxrob Erkinov", score: INITIAL_SCORE, lastPenalty: 0 },
+    { name: "Jonibek Sulaymonov", score: INITIAL_SCORE, lastPenalty: 0 },
+    { name: "Otabek Sulaymonov", score: INITIAL_SCORE, lastPenalty: 0 },
+    { name: "Ansor G'ulomov", score: INITIAL_SCORE, lastPenalty: 0 }
 ];
 
-let timerInterval;
-let cooldownInterval;
-let endTime = null;
-let nextSubtractTime = null;
-const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_DURATION = 2 * 60 * 60 * 1000;
-
-const grid = document.getElementById('participants-grid');
-const timerDisplay = document.getElementById('timer-display');
-const startBtn = document.getElementById('startTimerBtn');
-const detailsBtn = document.getElementById('detailsBtn');
-const infoBtn = document.getElementById('infoBtn');
-const modal = document.getElementById("infoModal");
-document.getElementById('refreshBtn').style.display = 'block';
-
-async function saveData() {
-    const data = { participants, endTime, nextSubtractTime };
-    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
-    try {
-        await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-    } catch (e) { }
+if (localStorage.getItem('challenge_data')) {
+    participants = JSON.parse(localStorage.getItem('challenge_data'));
 }
 
-async function loadData() {
-    const local = localStorage.getItem('swearing_challenge_backup');
-    if (local) {
-        const parsed = JSON.parse(local);
-        participants = parsed.participants;
-        endTime = parsed.endTime;
-        nextSubtractTime = parsed.nextSubtractTime;
-    }
-    try {
-        const response = await fetch('/api/load');
-        if (response.ok) {
-            const serverData = await response.json();
-            if (serverData.endTime) {
-                participants = serverData.participants;
-                endTime = serverData.endTime;
-                nextSubtractTime = serverData.nextSubtractTime;
-            }
-        }
-    } catch (e) { }
-
-    if (endTime) {
-        startBtn.disabled = true;
-        startTimer();
-    }
-
-    if (nextSubtractTime && Date.now() < nextSubtractTime) {
-        startCooldownTimer();
-    }
-    renderUI();
-}
-
-function renderUI() {
+function renderParticipants() {
+    const grid = document.getElementById('participants-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    const isLocked = nextSubtractTime && Date.now() < nextSubtractTime;
 
-    participants.forEach(p => {
+    participants.forEach((p, index) => {
+        const now = Date.now();
+        const diff = now - p.lastPenalty;
+        const isOnCooldown = diff < COOLDOWN_TIME;
+        const isOut = p.score <= 0;
+
         const card = document.createElement('div');
-        card.className = `card ${p.score <= 0 ? 'out' : ''}`;
+        card.className = `card ${isOut ? 'out' : ''}`;
+
+        let cooldownHTML = '';
+        if (isOnCooldown && !isOut) {
+            const remaining = Math.ceil((COOLDOWN_TIME - diff) / 1000);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            cooldownHTML = `<p class="cooldown-label">Keyingi imkoniyat: ${mins}:${secs < 10 ? '0' : ''}${secs}</p>`;
+        }
+
         card.innerHTML = `
             <h3>${p.name}</h3>
-            <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn ${isLocked ? 'disabled-btn' : ''}" 
-                    ${isLocked ? 'disabled' : ''} 
-                    onclick="subtract(${p.id})">×</button>
-            <div class="cooldown-label"></div>
+            <div class="score-box">${p.score}</div>
+            <button class="minus-btn ${isOnCooldown || isOut ? 'disabled-btn' : ''}" 
+                    onclick="decreaseScore(${index})" 
+                    ${isOnCooldown || isOut ? 'disabled' : ''}>×</button>
+            ${cooldownHTML}
         `;
         grid.appendChild(card);
     });
+
+    checkGameOver();
 }
 
-window.subtract = function (id) {
-    if (nextSubtractTime && Date.now() < nextSubtractTime) return;
-
-    const p = participants.find(x => x.id === id);
-    if (p && p.score > 0) {
-        p.score--;
-        nextSubtractTime = Date.now() + COOLDOWN_DURATION;
+window.decreaseScore = function (index) {
+    const now = Date.now();
+    if (participants[index].score > 0 && (now - participants[index].lastPenalty >= COOLDOWN_TIME)) {
+        participants[index].score -= 1;
+        participants[index].lastPenalty = now;
         saveData();
-        renderUI();
-        startCooldownTimer();
-    }
-}
-
-function startCooldownTimer() {
-    if (cooldownInterval) clearInterval(cooldownInterval);
-    cooldownInterval = setInterval(() => {
-        const timeLeft = nextSubtractTime - Date.now();
-        if (timeLeft <= 0) {
-            clearInterval(cooldownInterval);
-            nextSubtractTime = null;
-            saveData();
-            renderUI();
-        } else {
-            const h = Math.floor(timeLeft / 3600000);
-            const m = Math.floor((timeLeft % 3600000) / 60000);
-            const s = Math.floor((timeLeft % 60000) / 1000);
-            const timeStr = `Keyingi imkoniyat: ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-            document.querySelectorAll('.cooldown-label').forEach(el => el.innerText = timeStr);
-        }
-    }, 1000);
-}
-
-function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        const timeLeft = endTime - Date.now();
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            timerDisplay.innerText = "00:00:00:00";
-        } else {
-            const s = Math.floor(timeLeft / 1000);
-            const d = Math.floor(s / 86400);
-            const h = Math.floor((s % 86400) / 3600);
-            const m = Math.floor((s % 3600) / 60);
-            const sec = s % 60;
-            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-        }
-    }, 1000);
-}
-
-startBtn.onclick = async () => {
-    if (confirm("6 kunlik challenge boshlansinmi?")) {
-        endTime = Date.now() + CHALLENGE_DURATION;
-        startBtn.disabled = true;
-        await saveData();
-        startTimer();
+        renderParticipants();
     }
 };
 
-if (detailsBtn) {
-    detailsBtn.onclick = () => {
-        let r = "ISHTIROKCHILAR:\n";
-        participants.forEach(p => r += `${p.name}: ${p.score} ball\n`);
-        alert(r);
-    };
+function saveData() {
+    localStorage.setItem('challenge_data', JSON.stringify(participants));
 }
 
-if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
-const closeBtn = document.querySelector(".close-modal");
-if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
-window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
+const saveBtn = document.getElementById('saveBtn');
+if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+        saveData();
+        alert("Natijalar muvaffaqiyatli saqlandi!");
+    });
+}
 
-loadData();
+function startTimer() {
+    let startTime = localStorage.getItem('challenge_start_time');
+    if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem('challenge_start_time', startTime);
+    }
+
+    setInterval(() => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const remaining = TOTAL_CHALLENGE_TIME - elapsed;
+        const display = document.getElementById('timer-display');
+
+        if (!display) return;
+
+        if (remaining <= 0) {
+            display.innerText = "Vaqt tugadi!";
+            return;
+        }
+
+        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+        display.innerText =
+            `${days < 10 ? '0' : ''}${days}:${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }, 1000);
+}
+
+function checkGameOver() {
+    const anyOut = participants.some(p => p.score <= 0);
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (anyOut && refreshBtn) {
+        refreshBtn.style.display = 'block';
+    }
+}
+
+const modal = document.getElementById('infoModal');
+const infoBtn = document.getElementById('infoBtn');
+const detailsBtn = document.getElementById('detailsBtn');
+const closeSpan = document.querySelector('.close-modal');
+
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
+if (detailsBtn) detailsBtn.onclick = () => modal.style.display = "block";
+if (closeSpan) closeSpan.onclick = () => modal.style.display = "none";
+
+window.onclick = (event) => {
+    if (event.target == modal) modal.style.display = "none";
+};
+
+setInterval(renderParticipants, 1000);
+startTimer();
+renderParticipants();
