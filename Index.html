@@ -9,6 +9,8 @@
 </head>
 
 <body>
+    <div id="flash-overlay" class="flash-overlay"></div>
+
     <header class="header">
         <div class="container">
             <div class="header__wrapper">
@@ -20,7 +22,23 @@
     </header>
 
     <main class="container">
+        <section class="stats-section">
+            <div class="stat-card shadow-blue">
+                <div class="stat-title">Nutq Qiroli 👑</div>
+                <div id="stat-king" class="stat-value text-gold">--</div>
+            </div>
+            <div class="stat-card shadow-red">
+                <div class="stat-title">Xavf Ostidagilar ⚠️</div>
+                <div id="stat-danger" class="stat-value text-red">--</div>
+            </div>
+            <div class="stat-card shadow-purple">
+                <div class="stat-title">Jami Yo'qotilgan Ballar 📉</div>
+                <div id="stat-total-lost" class="stat-value text-purple">0</div>
+            </div>
+        </section>
+
         <section class="hero" id="participants-grid"></section>
+
         <section class="controls">
             <button id="startTimerBtn" class="main-btn">Vaqtni ishga tushirish</button>
             <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>

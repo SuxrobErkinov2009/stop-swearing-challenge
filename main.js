@@ -17,6 +17,7 @@ const saveBtn = document.getElementById('saveBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
+const flashOverlay = document.getElementById("flash-overlay");
 
 function saveData() {
     const data = { participants, endTime };
@@ -41,6 +42,15 @@ function loadData() {
     renderUI();
 }
 
+// 🚨 Ekran qizil bo'lib miltillash funksiyasi
+function triggerFlashEffect() {
+    if (!flashOverlay) return;
+    flashOverlay.classList.add("flash-active");
+    setTimeout(() => {
+        flashOverlay.classList.remove("flash-active");
+    }, 150);
+}
+
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -50,6 +60,27 @@ window.subtract = function (id) {
 
     p.score--;
     p.nextAllowedTime = now + COOLDOWN_TIME;
+
+    // ================= OVOZLAR VA FLASH MANTIG'I =================
+    triggerFlashEffect();
+
+    if (p.score === 0) {
+        // Agar ball 0 bo'lsa, faqat gameover ovozi chalinsin
+        const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
+        gameOverAudio.play();
+    } else {
+        // Oddiy xato holatida avval error ovozi chalinsin
+        const errorAudio = new Audio('./ovozlar/error.MP3');
+        errorAudio.play();
+
+        // Roppa-rosa 1 soniyadan keyin lock (qulflash) ovozi chalinsin
+        setTimeout(() => {
+            const lockAudio = new Audio('./ovozlar/lock.MP3');
+            lockAudio.play();
+        }, 1000);
+    }
+    // =============================================================
+
     saveData();
     renderUI();
 
@@ -69,6 +100,20 @@ function renderUI() {
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
 
+    // 📊 1. JONLI STATISTIKANI HISOBLASH
+    // Jami yo'qotilgan ballar (Har bir ishtirokchi 15 balldan boshlagan)
+    let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
+    document.getElementById('stat-total-lost').innerText = totalLost;
+
+    // Nutq qiroli (Eng ko'p balli bor va hali 0 bo'lmaganlar)
+    let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
+    document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
+
+    // Xavf ostidagilar (Balli 5 yoki undan kam qolgan, lekin 0 bo'lmaganlar)
+    let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
+    document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
+
+    // 👤 2. KARTALARNI CHIZISH
     participants.forEach(p => {
         const card = document.createElement('div');
         const isLeader = p.score === maxScore && p.score > 0;
@@ -76,7 +121,6 @@ function renderUI() {
 
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
 
-        // Dynamic status content based on game rules
         let statusHtml = '';
         if (p.score <= 0) {
             statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz, sog'ilishga tayyor turing!!! 💀</div>`;
@@ -117,7 +161,7 @@ function startTimer() {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
             showRefreshUI();
-            renderUI(); // Re-render to show game-over messages
+            renderUI();
         } else {
             const d = Math.floor(timeLeft / 86400000);
             const h = Math.floor((timeLeft % 86400000) / 3600000);
