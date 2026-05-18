@@ -2,7 +2,8 @@ let participants = [
     { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
     { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
     { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
+    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null },
+    { id: 4, name: "Abduahad Xamdamjonov", score: 15, nextAllowedTime: null }
 ];
 
 let timerInterval;
