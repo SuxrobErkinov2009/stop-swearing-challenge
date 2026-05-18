@@ -895,6 +895,50 @@ body {
     padding: 5px 0;
 }
 
+.reset-btn {
+    background: linear-gradient(135deg, #f5365c, #f56036) !important;
+    color: white !important;
+    box-shadow: 0 5px 15px rgba(245, 54, 92, 0.4) !important;
+}
+
+.status-msg {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: msgPulse 1.5s infinite alternate ease-in-out;
+}
+
+.status-winner {
+    background: rgba(46, 213, 115, 0.1);
+    border: 1px solid #2ed573;
+    color: #2ed573;
+    text-shadow: 0 0 10px rgba(46, 213, 115, 0.3);
+}
+
+.status-loser {
+    background: rgba(255, 71, 87, 0.1);
+    border: 1px solid #ff4757;
+    color: #ff4757;
+    text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+}
+
+@keyframes msgPulse {
+    0% {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: scale(1.02);
+        opacity: 1;
+    }
+}
+
 @keyframes modal-zoom {
     from {
         transform: scale(0.7);
@@ -907,7 +951,6 @@ body {
     }
 }
 
-/* RESPONSIVE */
 @media (max-width: 768px) {
     #participants-grid {
         grid-template-columns: 1fr;

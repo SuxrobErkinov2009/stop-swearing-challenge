@@ -64,6 +64,8 @@ function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
     const now = Date.now();
+    const isGameOver = endTime ? now >= endTime : false;
+
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
 
@@ -74,14 +76,26 @@ function renderUI() {
 
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
 
+        // Dynamic status content based on game rules
+        let statusHtml = '';
+        if (p.score <= 0) {
+            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz, sog'ilishga tayyor turing!!! 💀</div>`;
+        } else if (isGameOver) {
+            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Siz azoblash xizmatidan qutilib qoldingiz!!! 🎉</div>`;
+        } else {
+            statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`;
+        }
+
         card.innerHTML = `
             <span class="crown-icon">👑</span>
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn" ${isLocked ? 'disabled' : ''} onclick="subtract(${p.id})">
+            <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
+                ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} 
+                onclick="subtract(${p.id})">
                 <span>×</span>
             </button>
-            <div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>
+            ${statusHtml}
         `;
         grid.appendChild(card);
     });
@@ -103,6 +117,7 @@ function startTimer() {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
             showRefreshUI();
+            renderUI(); // Re-render to show game-over messages
         } else {
             const d = Math.floor(timeLeft / 86400000);
             const h = Math.floor((timeLeft % 86400000) / 3600000);
@@ -116,13 +131,13 @@ function startTimer() {
 setInterval(() => {
     const now = Date.now();
     const needsUpdate = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
-    if (needsUpdate) {
+    if (needsUpdate && (!endTime || now < endTime)) {
         renderUI();
     }
 }, 1000);
 
 function showRefreshUI() {
-    if (refreshBtn) refreshBtn.style.display = 'block';
+    if (refreshBtn) refreshBtn.style.display = 'inline-block';
     if (startBtn) startBtn.style.display = 'none';
 }
 
@@ -137,7 +152,7 @@ if (startBtn) {
 }
 
 if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Tozalash?")) { localStorage.clear(); location.reload(); } };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
 
 const closeBtn = document.querySelector(".close-modal");
