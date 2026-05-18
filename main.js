@@ -2,14 +2,16 @@ let participants = [
     { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
     { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
     { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null },
-    { id: 4, name: "Abduahad Xamdamjonov", score: 15, nextAllowedTime: null }
+    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
 ];
+
+let logs = []; // Jarimalar tarixi uchun yangi massiv
+let activeParticipantId = null; // Hozir qaysi ishtirokchidan ball olinayotgani
 
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 10 * 60 * 1000;
+const COOLDOWN_TIME = 5 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -20,8 +22,16 @@ const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 const flashOverlay = document.getElementById("flash-overlay");
 
+// Yangi modal elementlari
+const reasonModal = document.getElementById("reasonModal");
+const reasonInput = document.getElementById("penaltyReasonInput");
+const reasonTargetText = document.getElementById("reasonModalTarget");
+const cancelReasonBtn = document.getElementById("cancelReasonBtn");
+const submitReasonBtn = document.getElementById("submitReasonBtn");
+const logsContainer = document.getElementById("logs-container");
+
 function saveData() {
-    const data = { participants, endTime };
+    const data = { participants, endTime, logs };
     localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 }
 
@@ -31,6 +41,7 @@ function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants;
         endTime = parsed.endTime;
+        logs = parsed.logs || [];
     }
     if (endTime) {
         if (Date.now() < endTime) {
@@ -41,9 +52,9 @@ function loadData() {
         }
     }
     renderUI();
+    renderLogs();
 }
 
-// 🚨 Ekran qizil bo'lib miltillash funksiyasi
 function triggerFlashEffect() {
     if (!flashOverlay) return;
     flashOverlay.classList.add("flash-active");
@@ -52,6 +63,7 @@ function triggerFlashEffect() {
     }, 150);
 }
 
+// × tugmasi bosilganda faqat modal ochiladi
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -59,38 +71,99 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
-    p.score--;
-    p.nextAllowedTime = now + COOLDOWN_TIME;
+    // Aktiv ishtirokchini saqlab, modalni ko'rsatamiz
+    activeParticipantId = id;
+    reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
+    reasonInput.value = '';
+    reasonModal.style.display = "flex";
+    reasonInput.focus();
+};
 
-    // ================= OVOZLAR VA FLASH MANTIG'I =================
-    triggerFlashEffect();
-
-    if (p.score === 0) {
-        // Agar ball 0 bo'lsa, faqat gameover ovozi chalinsin
-        const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
-        gameOverAudio.play();
-    } else {
-        // Oddiy xato holatida avval error ovozi chalinsin
-        const errorAudio = new Audio('./ovozlar/error.MP3');
-        errorAudio.play();
-
-        // Roppa-rosa 1 soniyadan keyin lock (qulflash) ovozi chalinsin
-        setTimeout(() => {
-            const lockAudio = new Audio('./ovozlar/lock.MP3');
-            lockAudio.play();
-        }, 1000);
+// Sabab modalining tasdiqlash tugmasi
+submitReasonBtn.onclick = function () {
+    const reasonText = reasonInput.value.trim();
+    if (!reasonText) {
+        alert("Iltimos, sababni kiriting!");
+        return;
     }
-    // =============================================================
 
-    saveData();
-    renderUI();
+    const id = activeParticipantId;
+    const p = participants.find(x => x.id === id);
+    const now = Date.now();
 
-    const scoreEl = document.getElementById(`score-${id}`);
-    if (scoreEl) {
-        scoreEl.classList.add('score-change');
-        setTimeout(() => scoreEl.classList.remove('score-change'), 500);
+    if (p) {
+        p.score--;
+        p.nextAllowedTime = now + COOLDOWN_TIME;
+
+        // Vaqtni chiroyli soat ko'rinishiga keltiramiz (HH:MM)
+        const currentHour = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+
+        // Yangi log qo'shish
+        logs.unshift({
+            name: p.name,
+            remainingScore: p.score,
+            reason: reasonText,
+            time: currentHour
+        });
+
+        // Modalni yopish
+        reasonModal.style.display = "none";
+
+        // Effektlar va ovozlar
+        triggerFlashEffect();
+
+        if (p.score === 0) {
+            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
+            gameOverAudio.play();
+        } else {
+            const errorAudio = new Audio('./ovozlar/error.MP3');
+            errorAudio.play();
+
+            setTimeout(() => {
+                const lockAudio = new Audio('./ovozlar/lock.MP3');
+                lockAudio.play();
+            }, 1000);
+        }
+
+        saveData();
+        renderUI();
+        renderLogs();
+
+        const scoreEl = document.getElementById(`score-${id}`);
+        if (scoreEl) {
+            scoreEl.classList.add('score-change');
+            setTimeout(() => scoreEl.classList.remove('score-change'), 500);
+        }
     }
 };
+
+// Bekor qilish tugmasi
+cancelReasonBtn.onclick = function () {
+    reasonModal.style.display = "none";
+};
+
+// Logs ro'yxatini ekranga chizish
+function renderLogs() {
+    if (!logsContainer) return;
+    if (logs.length === 0) {
+        logsContainer.innerHTML = `<div class="no-logs">Hozircha hech kim qoidani buzgani yo'q. Baraka topinglar! 🙌</div>`;
+        return;
+    }
+
+    logsContainer.innerHTML = '';
+    logs.forEach(item => {
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        logItem.innerHTML = `
+            <div class="log-left">
+                <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
+                <div class="log-reason">🚨 Sabab: ${item.reason}</div>
+            </div>
+            <div class="log-time">Bugun, ${item.time}</div>
+        `;
+        logsContainer.appendChild(logItem);
+    });
+}
 
 function renderUI() {
     if (!grid) return;
@@ -101,20 +174,17 @@ function renderUI() {
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
 
-    // 📊 1. JONLI STATISTIKANI HISOBLASH
-    // Jami yo'qotilgan ballar (Har bir ishtirokchi 15 balldan boshlagan)
+    // JONLI STATISTIKA
     let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
     document.getElementById('stat-total-lost').innerText = totalLost;
 
-    // Nutq qiroli (Eng ko'p balli bor va hali 0 bo'lmaganlar)
     let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
 
-    // Xavf ostidagilar (Balli 5 yoki undan kam qolgan, lekin 0 bo'lmaganlar)
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
-    // 👤 2. KARTALARNI CHIZISH
+    // KARTALAR
     participants.forEach(p => {
         const card = document.createElement('div');
         const isLeader = p.score === maxScore && p.score > 0;

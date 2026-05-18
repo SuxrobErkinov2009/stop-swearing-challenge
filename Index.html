@@ -39,12 +39,36 @@
 
         <section class="hero" id="participants-grid"></section>
 
+        <section class="logs-section">
+            <div class="logs-header">Jarima va Qoidabuzarliklar Tarixi 📋</div>
+            <div id="logs-container" class="logs-container">
+                <div class="no-logs">Hozircha hech kim qoidani buzgani yo'q. Baraka topinglar! 🙌</div>
+            </div>
+        </section>
+
         <section class="controls">
             <button id="startTimerBtn" class="main-btn">Vaqtni ishga tushirish</button>
             <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>
             <button id="refreshBtn" class="main-btn reset-btn" style="display: none;">Yangitdan boshlash</button>
         </section>
     </main>
+
+    <div id="reasonModal" class="modal">
+        <div class="modal-content reason-modal-content">
+            <div class="modal-header">
+                <h2 class="nimadir" style="color: #ff4757;">Ball Ayirish Sababi ⚠️</h2>
+            </div>
+            <div class="modal-body">
+                <p id="reasonModalTarget" style="color: #fff; font-weight: 600; margin-bottom: 15px;"></p>
+                <input type="text" id="penaltyReasonInput" class="reason-input"
+                    placeholder="Masalan: Guruhda haqoratli so'z ishlatdi..." autocomplete="off">
+                <div class="reason-modal-btns">
+                    <button id="cancelReasonBtn" class="modal-action-btn cancel-btn">Bekor qilish</button>
+                    <button id="submitReasonBtn" class="modal-action-btn confirm-btn">Tasdiqlash</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="infoModal" class="modal">
         <div class="modal-content">
