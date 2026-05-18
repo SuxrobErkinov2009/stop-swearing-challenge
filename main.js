@@ -5,7 +5,7 @@ let participants = [
     { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
 ];
 
-let logs = []; // Jarimalar tarixi uchun yangi massiv
+let logs = []; // Jarimalar tarixi uchun massiv
 let activeParticipantId = null; // Hozir qaysi ishtirokchidan ball olinayotgani
 
 let timerInterval;
@@ -22,7 +22,7 @@ const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 const flashOverlay = document.getElementById("flash-overlay");
 
-// Yangi modal elementlari
+// Sabab modal elementlari
 const reasonModal = document.getElementById("reasonModal");
 const reasonInput = document.getElementById("penaltyReasonInput");
 const reasonTargetText = document.getElementById("reasonModalTarget");
@@ -63,7 +63,7 @@ function triggerFlashEffect() {
     }, 150);
 }
 
-// × tugmasi bosilganda faqat modal ochiladi
+// × tugmasi bosilganda modal ochish
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -71,7 +71,6 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
-    // Aktiv ishtirokchini saqlab, modalni ko'rsatamiz
     activeParticipantId = id;
     reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
     reasonInput.value = '';
@@ -79,7 +78,7 @@ window.subtract = function (id) {
     reasonInput.focus();
 };
 
-// Sabab modalining tasdiqlash tugmasi
+// Sababni tasdiqlash
 submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
     if (!reasonText) {
@@ -95,10 +94,8 @@ submitReasonBtn.onclick = function () {
         p.score--;
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
-        // Vaqtni chiroyli soat ko'rinishiga keltiramiz (HH:MM)
         const currentHour = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
 
-        // Yangi log qo'shish
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
@@ -106,10 +103,7 @@ submitReasonBtn.onclick = function () {
             time: currentHour
         });
 
-        // Modalni yopish
         reasonModal.style.display = "none";
-
-        // Effektlar va ovozlar
         triggerFlashEffect();
 
         if (p.score === 0) {
@@ -137,12 +131,10 @@ submitReasonBtn.onclick = function () {
     }
 };
 
-// Bekor qilish tugmasi
 cancelReasonBtn.onclick = function () {
     reasonModal.style.display = "none";
 };
 
-// Logs ro'yxatini ekranga chizish
 function renderLogs() {
     if (!logsContainer) return;
     if (logs.length === 0) {
@@ -184,7 +176,7 @@ function renderUI() {
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
-    // KARTALAR
+    // KARTALARNI CHIZISH
     participants.forEach(p => {
         const card = document.createElement('div');
         const isLeader = p.score === maxScore && p.score > 0;
@@ -243,10 +235,24 @@ function startTimer() {
     }, 1000);
 }
 
+// ⏱️ TUGLARNI AVTOMAT OCHADIGAN TAYMER (XATO TUZATILDI)
 setInterval(() => {
     const now = Date.now();
-    const needsUpdate = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
-    if (needsUpdate && (!endTime || now < endTime)) {
+    let shartliYangilash = false;
+
+    participants.forEach(p => {
+        if (p.nextAllowedTime) {
+            if (now < p.nextAllowedTime) {
+                shartliYangilash = true;
+            } else {
+                p.nextAllowedTime = null;
+                shartliYangilash = true;
+                saveData();
+            }
+        }
+    });
+
+    if (shartliYangilash && (!endTime || now < endTime)) {
         renderUI();
     }
 }, 1000);
