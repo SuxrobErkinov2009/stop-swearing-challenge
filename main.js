@@ -5,8 +5,8 @@ let participants = [
     { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
 ];
 
-let logs = []; // Jarimalar tarixi uchun massiv
-let activeParticipantId = null; // Hozir qaysi ishtirokchidan ball olinayotgani
+let logs = [];
+let activeParticipantId = null;
 
 let timerInterval;
 let endTime = null;
@@ -22,7 +22,6 @@ const infoBtn = document.getElementById('infoBtn');
 const modal = document.getElementById("infoModal");
 const flashOverlay = document.getElementById("flash-overlay");
 
-// Sabab modal elementlari
 const reasonModal = document.getElementById("reasonModal");
 const reasonInput = document.getElementById("penaltyReasonInput");
 const reasonTargetText = document.getElementById("reasonModalTarget");
@@ -63,7 +62,6 @@ function triggerFlashEffect() {
     }, 150);
 }
 
-// × tugmasi bosilganda modal ochish
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -78,7 +76,6 @@ window.subtract = function (id) {
     reasonInput.focus();
 };
 
-// Sababni tasdiqlash
 submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
     if (!reasonText) {
@@ -143,7 +140,7 @@ function renderLogs() {
     }
 
     logsContainer.innerHTML = '';
-    logs.forEach(item => {
+    logs.forEach((item, index) => {
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
         logItem.innerHTML = `
@@ -151,11 +148,22 @@ function renderLogs() {
                 <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
                 <div class="log-reason">🚨 Sabab: ${item.reason}</div>
             </div>
-            <div class="log-time">Bugun, ${item.time}</div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="log-time">Bugun, ${item.time}</div>
+                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;" title="Tarixdan o'chirish">×</button>
+            </div>
         `;
         logsContainer.appendChild(logItem);
     });
 }
+
+window.deleteLog = function (index) {
+    if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
+        logs.splice(index, 1);
+        saveData();
+        renderLogs();
+    }
+};
 
 function renderUI() {
     if (!grid) return;
@@ -166,7 +174,6 @@ function renderUI() {
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
 
-    // JONLI STATISTIKA
     let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
     document.getElementById('stat-total-lost').innerText = totalLost;
 
@@ -176,7 +183,6 @@ function renderUI() {
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
-    // KARTALARNI CHIZISH
     participants.forEach(p => {
         const card = document.createElement('div');
         const isLeader = p.score === maxScore && p.score > 0;
@@ -235,7 +241,6 @@ function startTimer() {
     }, 1000);
 }
 
-// ⏱️ TUGLARNI AVTOMAT OCHADIGAN TAYMER (XATO TUZATILDI)
 setInterval(() => {
     const now = Date.now();
     let shartliYangilash = false;
