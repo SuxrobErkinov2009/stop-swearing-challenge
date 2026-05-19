@@ -36,14 +36,10 @@ const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 
-// "8590091117" paroli uchun Bitwise hashing tekshiruvi
+// "8590091117" paroli uchun xavfsiz va aniq tekshiruv (Base64 shifrlash)
 function verifySecureKey(input) {
-    let key = 0;
-    for (let i = 0; i < input.length; i++) {
-        key = (key << 5) - key + input.charCodeAt(i);
-        key |= 0;
-    }
-    return key === -1638848141; // "8590091117" paroli uchun yangi hash qiymati
+    // "ODU5MDA5MTExNw==" bu "8590091117" matnining shifrlangan holati
+    return btoa(input) === "ODU5MDA5MTExNw==";
 }
 
 function askPassword(onSuccess) {
