@@ -12,7 +12,7 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME =  3 * 60 * 1000;
+const COOLDOWN_TIME = 3 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -36,60 +36,72 @@ const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 
-// "8590091117" paroli uchun xavfsiz va aniq tekshiruv (Base64 shifrlash)
 function verifySecureKey(input) {
-    // "ODU5MDA5MTExNw==" bu "8590091117" matnining shifrlangan holati
     return btoa(input) === "ODU5MDA5MTExNw==";
 }
 
 function askPassword(onSuccess) {
     adminPasswordInput.value = '';
-    passwordModal.style.display = "flex";
+    passwordModal.style.setProperty('display', 'flex', 'important');
     adminPasswordInput.focus();
     securityCallback = onSuccess;
 }
 
 submitPasswordBtn.onclick = function () {
     if (verifySecureKey(adminPasswordInput.value)) {
-        passwordModal.style.display = "none";
+        passwordModal.style.setProperty('display', 'none', 'important');
         if (securityCallback) securityCallback();
     } else {
         alert("Noto'g'ri parol! Ruxsat berilmadi.");
-        passwordModal.style.display = "none";
+        passwordModal.style.setProperty('display', 'none', 'important');
     }
 };
 
 cancelPasswordBtn.onclick = function () {
-    passwordModal.style.display = "none";
+    passwordModal.style.setProperty('display', 'none', 'important');
 };
 
-function saveData() {
+async function saveData() {
     const data = { participants, endTime, logs };
-    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
+    try {
+        await fetch('/api/save-challenge-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    } catch (error) {
+        console.error("Serverga saqlashda xato:", error);
+    }
 }
 
-function loadData() {
-    const local = localStorage.getItem('swearing_challenge_backup');
-    if (local) {
-        const parsed = JSON.parse(local);
-        participants = parsed.participants.map(p => ({
-            ...p,
-            penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
-        }));
-        endTime = parsed.endTime;
-        logs = parsed.logs || [];
-    }
-    if (endTime) {
-        if (Date.now() < endTime) {
-            if (startBtn) startBtn.style.display = 'none';
-            startTimer();
-        } else {
-            showRefreshUI();
+async function loadData() {
+    try {
+        const response = await fetch('/api/get-challenge-data');
+        const parsed = await response.json();
+
+        if (parsed) {
+            participants = parsed.participants.map(p => ({
+                ...p,
+                penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
+            }));
+            endTime = parsed.endTime;
+            logs = parsed.logs || [];
         }
+
+        if (endTime) {
+            if (Date.now() < endTime) {
+                if (startBtn) startBtn.style.display = 'none';
+                startTimer();
+            } else {
+                showRefreshUI();
+            }
+        }
+        renderUI();
+        renderLogs();
+        renderMoney();
+    } catch (error) {
+        console.error("Serverdan yuklashda xato:", error);
     }
-    renderUI();
-    renderLogs();
-    renderMoney();
 }
 
 function triggerFlashEffect() {
@@ -111,12 +123,14 @@ window.subtract = function (id) {
         activeParticipantId = id;
         reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
         reasonInput.value = '';
-        reasonModal.style.display = "flex";
+
+        reasonModal.style.setProperty('display', 'flex', 'important');
+        document.body.style.setProperty('overflow', 'hidden', 'important');
         reasonInput.focus();
     });
 };
 
-submitReasonBtn.onclick = function () {
+submitReasonBtn.onclick = async function () {
     const reasonText = reasonInput.value.trim();
     if (!reasonText) {
         alert("Iltimos, sababni kiriting!");
@@ -141,23 +155,20 @@ submitReasonBtn.onclick = function () {
             time: currentHour
         });
 
-        reasonModal.style.display = "none";
+        reasonModal.style.setProperty('display', 'none', 'important');
+        document.body.style.setProperty('overflow', 'auto', 'important');
         triggerFlashEffect();
 
         if (p.score === 0) {
-            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
-            gameOverAudio.play();
+            new Audio('./ovozlar/gameover.MP3').play().catch(() => { });
         } else {
-            const errorAudio = new Audio('./ovozlar/error.MP3');
-            errorAudio.play();
-
+            new Audio('./ovozlar/error.MP3').play().catch(() => { });
             setTimeout(() => {
-                const lockAudio = new Audio('./ovozlar/lock.MP3');
-                lockAudio.play();
+                new Audio('./ovozlar/lock.MP3').play().catch(() => { });
             }, 1000);
         }
 
-        saveData();
+        await saveData();
         renderUI();
         renderLogs();
         renderMoney();
@@ -171,18 +182,19 @@ submitReasonBtn.onclick = function () {
 };
 
 cancelReasonBtn.onclick = function () {
-    reasonModal.style.display = "none";
+    reasonModal.style.setProperty('display', 'none', 'important');
+    document.body.style.setProperty('overflow', 'auto', 'important');
 };
 
 window.payFine = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || p.penaltyMoney <= 0) return;
 
-    askPassword(() => {
+    askPassword(async () => {
         if (confirm(`${p.name} 2 000 so'm jarima to'ladi, hisobdan kamaytiramizmi?`)) {
             p.penaltyMoney -= 2000;
             if (p.penaltyMoney < 0) p.penaltyMoney = 0;
-            saveData();
+            await saveData();
             renderMoney();
         }
     });
@@ -231,10 +243,10 @@ function renderLogs() {
 }
 
 window.deleteLog = function (index) {
-    askPassword(() => {
+    askPassword(async () => {
         if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
             logs.splice(index, 1);
-            saveData();
+            await saveData();
             renderLogs();
         }
     });
@@ -316,7 +328,7 @@ function startTimer() {
     }, 1000);
 }
 
-setInterval(() => {
+setInterval(async () => {
     const now = Date.now();
     let shartliYangilash = false;
 
@@ -335,7 +347,38 @@ setInterval(() => {
     if (shartliYangilash && (!endTime || now < endTime)) {
         renderUI();
     }
-}, 1000);
+
+    const anybodyLocked = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
+    if (!anybodyLocked) {
+        try {
+            const response = await fetch('/api/get-challenge-data');
+            const parsed = await response.json();
+
+            if (parsed && (
+                JSON.stringify(participants) !== JSON.stringify(parsed.participants) ||
+                endTime !== parsed.endTime ||
+                logs.length !== (parsed.logs ? parsed.logs.length : 0)
+            )) {
+                participants = parsed.participants || [];
+                endTime = parsed.endTime;
+                logs = parsed.logs || [];
+
+                if (endTime && now < endTime) {
+                    if (startBtn) startBtn.style.display = 'none';
+                    startTimer();
+                } else if (endTime && now >= endTime) {
+                    showRefreshUI();
+                }
+
+                renderUI();
+                renderLogs();
+                renderMoney();
+            }
+        } catch (e) {
+            console.error("Sinxronizatsiyada xato:", e);
+        }
+    }
+}, 3000);
 
 function showRefreshUI() {
     if (refreshBtn) refreshBtn.style.display = 'inline-block';
@@ -343,21 +386,85 @@ function showRefreshUI() {
 }
 
 if (startBtn) {
-    startBtn.onclick = () => {
+    startBtn.onclick = async () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
-            saveData();
-            loadData();
+            await saveData();
+            await loadData();
         }
     };
 }
 
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
-if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
+if (saveBtn) saveBtn.onclick = async () => { await saveData(); alert("Natijalar muvaffaqiyatli serverga saqlandi!"); };
+
+if (refreshBtn) {
+    refreshBtn.onclick = async () => {
+        if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) {
+            const resetData = {
+                participants: [
+                    { id: 1, name: "Suxrob Erkinov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+                    { id: 2, name: "Jonibek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+                    { id: 3, name: "Otabek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+                    { id: 4, name: "Ansor G'ulomov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+                ],
+                endTime: null,
+                logs: []
+            };
+            await fetch('/api/save-challenge-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(resetData)
+            });
+            location.reload();
+        }
+    };
+}
+
+if (infoBtn) {
+    infoBtn.onclick = () => {
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('position', 'fixed', 'important');
+        modal.style.setProperty('top', '0', 'important');
+        modal.style.setProperty('left', '0', 'important');
+        modal.style.setProperty('width', '100vw', 'important');
+        modal.style.setProperty('height', '100vh', 'important');
+        modal.style.setProperty('align-items', 'center', 'important');
+        modal.style.setProperty('justify-content', 'center', 'important');
+        modal.style.setProperty('z-index', '999999', 'important');
+        modal.style.setProperty('background', 'rgba(0, 0, 0, 0.85)', 'important');
+
+        document.body.style.setProperty('overflow', 'hidden', 'important');
+        document.body.style.setProperty('height', '100vh', 'important');
+
+        const content = modal.querySelector('.modal-content');
+        if (content) {
+            content.style.setProperty('margin', 'auto', 'important');
+            content.style.setProperty('width', '90%', 'important');
+            content.style.setProperty('max-width', '520px', 'important');
+            content.style.setProperty('max-height', 'calc(100vh - 40px)', 'important');
+            content.style.setProperty('overflow-y', 'auto', 'important');
+            content.style.setProperty('position', 'relative', 'important');
+            content.style.setProperty('display', 'block', 'important');
+            content.style.setProperty('border-radius', '12px', 'important');
+        }
+    };
+}
 
 const closeBtn = document.querySelector(".close-modal");
-if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
-window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
+if (closeBtn) {
+    closeBtn.onclick = () => {
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.setProperty('overflow', 'auto', 'important');
+        document.body.style.removeProperty('height');
+    };
+}
+
+window.onclick = (e) => {
+    if (e.target == modal) {
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.setProperty('overflow', 'auto', 'important');
+        document.body.style.removeProperty('height');
+    }
+};
 
 loadData();
