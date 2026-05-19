@@ -12,7 +12,7 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 3 * 60 * 1000;
+const COOLDOWN_TIME =  3 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -36,72 +36,60 @@ const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 
+// "8590091117" paroli uchun xavfsiz va aniq tekshiruv (Base64 shifrlash)
 function verifySecureKey(input) {
+    // "ODU5MDA5MTExNw==" bu "8590091117" matnining shifrlangan holati
     return btoa(input) === "ODU5MDA5MTExNw==";
 }
 
 function askPassword(onSuccess) {
     adminPasswordInput.value = '';
-    passwordModal.style.setProperty('display', 'flex', 'important');
+    passwordModal.style.display = "flex";
     adminPasswordInput.focus();
     securityCallback = onSuccess;
 }
 
 submitPasswordBtn.onclick = function () {
     if (verifySecureKey(adminPasswordInput.value)) {
-        passwordModal.style.setProperty('display', 'none', 'important');
+        passwordModal.style.display = "none";
         if (securityCallback) securityCallback();
     } else {
         alert("Noto'g'ri parol! Ruxsat berilmadi.");
-        passwordModal.style.setProperty('display', 'none', 'important');
+        passwordModal.style.display = "none";
     }
 };
 
 cancelPasswordBtn.onclick = function () {
-    passwordModal.style.setProperty('display', 'none', 'important');
+    passwordModal.style.display = "none";
 };
 
-async function saveData() {
+function saveData() {
     const data = { participants, endTime, logs };
-    try {
-        await fetch('/api/save-challenge-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-    } catch (error) {
-        console.error("Serverga saqlashda xato:", error);
-    }
+    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 }
 
-async function loadData() {
-    try {
-        const response = await fetch('/api/get-challenge-data');
-        const parsed = await response.json();
-
-        if (parsed) {
-            participants = parsed.participants.map(p => ({
-                ...p,
-                penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
-            }));
-            endTime = parsed.endTime;
-            logs = parsed.logs || [];
-        }
-
-        if (endTime) {
-            if (Date.now() < endTime) {
-                if (startBtn) startBtn.style.display = 'none';
-                startTimer();
-            } else {
-                showRefreshUI();
-            }
-        }
-        renderUI();
-        renderLogs();
-        renderMoney();
-    } catch (error) {
-        console.error("Serverdan yuklashda xato:", error);
+function loadData() {
+    const local = localStorage.getItem('swearing_challenge_backup');
+    if (local) {
+        const parsed = JSON.parse(local);
+        participants = parsed.participants.map(p => ({
+            ...p,
+            penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
+        }));
+        endTime = parsed.endTime;
+        logs = parsed.logs || [];
     }
+    if (endTime) {
+        if (Date.now() < endTime) {
+            if (startBtn) startBtn.style.display = 'none';
+            startTimer();
+        } else {
+            showRefreshUI();
+        }
+    }
+    renderUI();
+    renderLogs();
+    renderMoney();
 }
 
 function triggerFlashEffect() {
@@ -123,14 +111,12 @@ window.subtract = function (id) {
         activeParticipantId = id;
         reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
         reasonInput.value = '';
-
-        reasonModal.style.setProperty('display', 'flex', 'important');
-        document.body.style.setProperty('overflow', 'hidden', 'important');
+        reasonModal.style.display = "flex";
         reasonInput.focus();
     });
 };
 
-submitReasonBtn.onclick = async function () {
+submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
     if (!reasonText) {
         alert("Iltimos, sababni kiriting!");
@@ -155,20 +141,23 @@ submitReasonBtn.onclick = async function () {
             time: currentHour
         });
 
-        reasonModal.style.setProperty('display', 'none', 'important');
-        document.body.style.setProperty('overflow', 'auto', 'important');
+        reasonModal.style.display = "none";
         triggerFlashEffect();
 
         if (p.score === 0) {
-            new Audio('./ovozlar/gameover.MP3').play().catch(() => { });
+            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
+            gameOverAudio.play();
         } else {
-            new Audio('./ovozlar/error.MP3').play().catch(() => { });
+            const errorAudio = new Audio('./ovozlar/error.MP3');
+            errorAudio.play();
+
             setTimeout(() => {
-                new Audio('./ovozlar/lock.MP3').play().catch(() => { });
+                const lockAudio = new Audio('./ovozlar/lock.MP3');
+                lockAudio.play();
             }, 1000);
         }
 
-        await saveData();
+        saveData();
         renderUI();
         renderLogs();
         renderMoney();
@@ -182,19 +171,18 @@ submitReasonBtn.onclick = async function () {
 };
 
 cancelReasonBtn.onclick = function () {
-    reasonModal.style.setProperty('display', 'none', 'important');
-    document.body.style.setProperty('overflow', 'auto', 'important');
+    reasonModal.style.display = "none";
 };
 
 window.payFine = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || p.penaltyMoney <= 0) return;
 
-    askPassword(async () => {
+    askPassword(() => {
         if (confirm(`${p.name} 2 000 so'm jarima to'ladi, hisobdan kamaytiramizmi?`)) {
             p.penaltyMoney -= 2000;
             if (p.penaltyMoney < 0) p.penaltyMoney = 0;
-            await saveData();
+            saveData();
             renderMoney();
         }
     });
@@ -243,10 +231,10 @@ function renderLogs() {
 }
 
 window.deleteLog = function (index) {
-    askPassword(async () => {
+    askPassword(() => {
         if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
             logs.splice(index, 1);
-            await saveData();
+            saveData();
             renderLogs();
         }
     });
@@ -328,7 +316,7 @@ function startTimer() {
     }, 1000);
 }
 
-setInterval(async () => {
+setInterval(() => {
     const now = Date.now();
     let shartliYangilash = false;
 
@@ -347,38 +335,7 @@ setInterval(async () => {
     if (shartliYangilash && (!endTime || now < endTime)) {
         renderUI();
     }
-
-    const anybodyLocked = participants.some(p => p.nextAllowedTime && now < p.nextAllowedTime);
-    if (!anybodyLocked) {
-        try {
-            const response = await fetch('/api/get-challenge-data');
-            const parsed = await response.json();
-
-            if (parsed && (
-                JSON.stringify(participants) !== JSON.stringify(parsed.participants) ||
-                endTime !== parsed.endTime ||
-                logs.length !== (parsed.logs ? parsed.logs.length : 0)
-            )) {
-                participants = parsed.participants || [];
-                endTime = parsed.endTime;
-                logs = parsed.logs || [];
-
-                if (endTime && now < endTime) {
-                    if (startBtn) startBtn.style.display = 'none';
-                    startTimer();
-                } else if (endTime && now >= endTime) {
-                    showRefreshUI();
-                }
-
-                renderUI();
-                renderLogs();
-                renderMoney();
-            }
-        } catch (e) {
-            console.error("Sinxronizatsiyada xato:", e);
-        }
-    }
-}, 3000);
+}, 1000);
 
 function showRefreshUI() {
     if (refreshBtn) refreshBtn.style.display = 'inline-block';
@@ -386,85 +343,21 @@ function showRefreshUI() {
 }
 
 if (startBtn) {
-    startBtn.onclick = async () => {
+    startBtn.onclick = () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
-            await saveData();
-            await loadData();
+            saveData();
+            loadData();
         }
     };
 }
 
-if (saveBtn) saveBtn.onclick = async () => { await saveData(); alert("Natijalar muvaffaqiyatli serverga saqlandi!"); };
-
-if (refreshBtn) {
-    refreshBtn.onclick = async () => {
-        if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) {
-            const resetData = {
-                participants: [
-                    { id: 1, name: "Suxrob Erkinov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-                    { id: 2, name: "Jonibek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-                    { id: 3, name: "Otabek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-                    { id: 4, name: "Ansor G'ulomov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-                ],
-                endTime: null,
-                logs: []
-            };
-            await fetch('/api/save-challenge-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(resetData)
-            });
-            location.reload();
-        }
-    };
-}
-
-if (infoBtn) {
-    infoBtn.onclick = () => {
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.setProperty('position', 'fixed', 'important');
-        modal.style.setProperty('top', '0', 'important');
-        modal.style.setProperty('left', '0', 'important');
-        modal.style.setProperty('width', '100vw', 'important');
-        modal.style.setProperty('height', '100vh', 'important');
-        modal.style.setProperty('align-items', 'center', 'important');
-        modal.style.setProperty('justify-content', 'center', 'important');
-        modal.style.setProperty('z-index', '999999', 'important');
-        modal.style.setProperty('background', 'rgba(0, 0, 0, 0.85)', 'important');
-
-        document.body.style.setProperty('overflow', 'hidden', 'important');
-        document.body.style.setProperty('height', '100vh', 'important');
-
-        const content = modal.querySelector('.modal-content');
-        if (content) {
-            content.style.setProperty('margin', 'auto', 'important');
-            content.style.setProperty('width', '90%', 'important');
-            content.style.setProperty('max-width', '520px', 'important');
-            content.style.setProperty('max-height', 'calc(100vh - 40px)', 'important');
-            content.style.setProperty('overflow-y', 'auto', 'important');
-            content.style.setProperty('position', 'relative', 'important');
-            content.style.setProperty('display', 'block', 'important');
-            content.style.setProperty('border-radius', '12px', 'important');
-        }
-    };
-}
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
 
 const closeBtn = document.querySelector(".close-modal");
-if (closeBtn) {
-    closeBtn.onclick = () => {
-        modal.style.setProperty('display', 'none', 'important');
-        document.body.style.setProperty('overflow', 'auto', 'important');
-        document.body.style.removeProperty('height');
-    };
-}
-
-window.onclick = (e) => {
-    if (e.target == modal) {
-        modal.style.setProperty('display', 'none', 'important');
-        document.body.style.setProperty('overflow', 'auto', 'important');
-        document.body.style.removeProperty('height');
-    }
-};
+if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
+window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
