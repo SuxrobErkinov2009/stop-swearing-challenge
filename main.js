@@ -1,17 +1,18 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, nextAllowedTime: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, penaltyMoney: 0, nextAllowedTime: null }
 ];
 
 let logs = [];
 let activeParticipantId = null;
+let securityCallback = null;
 
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 5 * 1000;
+const COOLDOWN_TIME = 10 * 60 * 1000;
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -28,6 +29,42 @@ const reasonTargetText = document.getElementById("reasonModalTarget");
 const cancelReasonBtn = document.getElementById("cancelReasonBtn");
 const submitReasonBtn = document.getElementById("submitReasonBtn");
 const logsContainer = document.getElementById("logs-container");
+const moneyContainer = document.getElementById("money-container");
+
+const passwordModal = document.getElementById("passwordModal");
+const adminPasswordInput = document.getElementById("adminPasswordInput");
+const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+const submitPasswordBtn = document.getElementById("submitPasswordBtn");
+
+function verifySecureKey(input) {
+    let key = 0;
+    for (let i = 0; i < input.length; i++) {
+        key = (key << 5) - key + input.charCodeAt(i);
+        key |= 0;
+    }
+    return key === 1447098491;
+}
+
+function askPassword(onSuccess) {
+    adminPasswordInput.value = '';
+    passwordModal.style.display = "flex";
+    adminPasswordInput.focus();
+    securityCallback = onSuccess;
+}
+
+submitPasswordBtn.onclick = function () {
+    if (verifySecureKey(adminPasswordInput.value)) {
+        passwordModal.style.display = "none";
+        if (securityCallback) securityCallback();
+    } else {
+        alert("Noto'g'ri parol! Ruxsat berilmadi.");
+        passwordModal.style.display = "none";
+    }
+};
+
+cancelPasswordBtn.onclick = function () {
+    passwordModal.style.display = "none";
+};
 
 function saveData() {
     const data = { participants, endTime, logs };
@@ -38,7 +75,10 @@ function loadData() {
     const local = localStorage.getItem('swearing_challenge_backup');
     if (local) {
         const parsed = JSON.parse(local);
-        participants = parsed.participants;
+        participants = parsed.participants.map(p => ({
+            ...p,
+            penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
+        }));
         endTime = parsed.endTime;
         logs = parsed.logs || [];
     }
@@ -52,6 +92,7 @@ function loadData() {
     }
     renderUI();
     renderLogs();
+    renderMoney();
 }
 
 function triggerFlashEffect() {
@@ -69,11 +110,13 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
-    activeParticipantId = id;
-    reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
-    reasonInput.value = '';
-    reasonModal.style.display = "flex";
-    reasonInput.focus();
+    askPassword(() => {
+        activeParticipantId = id;
+        reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
+        reasonInput.value = '';
+        reasonModal.style.display = "flex";
+        reasonInput.focus();
+    });
 };
 
 submitReasonBtn.onclick = function () {
@@ -89,6 +132,7 @@ submitReasonBtn.onclick = function () {
 
     if (p) {
         p.score--;
+        p.penaltyMoney += 2000;
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
         const currentHour = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
@@ -119,6 +163,7 @@ submitReasonBtn.onclick = function () {
         saveData();
         renderUI();
         renderLogs();
+        renderMoney();
 
         const scoreEl = document.getElementById(`score-${id}`);
         if (scoreEl) {
@@ -131,6 +176,37 @@ submitReasonBtn.onclick = function () {
 cancelReasonBtn.onclick = function () {
     reasonModal.style.display = "none";
 };
+
+window.payFine = function (id) {
+    const p = participants.find(x => x.id === id);
+    if (!p || p.penaltyMoney <= 0) return;
+
+    askPassword(() => {
+        if (confirm(`${p.name} 2 000 so'm jarima to'ladi, hisobdan kamaytiramizmi?`)) {
+            p.penaltyMoney -= 2000;
+            if (p.penaltyMoney < 0) p.penaltyMoney = 0;
+            saveData();
+            renderMoney();
+        }
+    });
+};
+
+function renderMoney() {
+    if (!moneyContainer) return;
+    moneyContainer.innerHTML = '';
+    participants.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'money-row';
+        row.innerHTML = `
+            <div class="money-name">${p.name}</div>
+            <div class="money-right">
+                <div class="money-val">${p.penaltyMoney.toLocaleString('uz-UZ')} so'm</div>
+                <button class="pay-btn" onclick="payFine(${p.id})" ${p.penaltyMoney <= 0 ? 'style="display:none;"' : ''}>To'lash</button>
+            </div>
+        `;
+        moneyContainer.appendChild(row);
+    });
+}
 
 function renderLogs() {
     if (!logsContainer) return;
@@ -158,11 +234,13 @@ function renderLogs() {
 }
 
 window.deleteLog = function (index) {
-    if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
-        logs.splice(index, 1);
-        saveData();
-        renderLogs();
-    }
+    askPassword(() => {
+        if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
+            logs.splice(index, 1);
+            saveData();
+            renderLogs();
+        }
+    });
 };
 
 function renderUI() {

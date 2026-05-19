@@ -39,6 +39,11 @@
 
         <section class="hero" id="participants-grid"></section>
 
+        <section class="money-section">
+            <div class="money-header">Moliyaviy Jarimalar Hisoboti 💸</div>
+            <div id="money-container" class="money-container"></div>
+        </section>
+
         <section class="logs-section">
             <div class="logs-header">Jarima va Qoidabuzarliklar Tarixi 📋</div>
             <div id="logs-container" class="logs-container">
@@ -52,6 +57,25 @@
             <button id="refreshBtn" class="main-btn reset-btn" style="display: none;">Yangitdan boshlash</button>
         </section>
     </main>
+
+    <div id="passwordModal" class="modal">
+        <div class="modal-content reason-modal-content" style="border-color: #ffd700;">
+            <div class="modal-header">
+                <h2 class="nimadir" style="color: #ffd700;">Xavfsizlik Tizimi 🔒</h2>
+            </div>
+            <div class="modal-body">
+                <p style="color: #fff; font-weight: 600; margin-bottom: 15px;">Tizim blokdan chiqarilishi uchun admin
+                    parolini kiriting:</p>
+                <input type="password" id="adminPasswordInput" class="reason-input" placeholder="Parolni yozing..."
+                    autocomplete="off">
+                <div class="reason-modal-btns">
+                    <button id="cancelPasswordBtn" class="modal-action-btn cancel-btn">Bekor qilish</button>
+                    <button id="submitPasswordBtn" class="modal-action-btn confirm-btn"
+                        style="background: #ffd700; color: #000;">Kirish</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="reasonModal" class="modal">
         <div class="modal-content reason-modal-content">
@@ -81,9 +105,10 @@
                 <p>Ushbu challenge insonning o'z nutqini nazorat qilishi, madaniyatli muloqotni shakllantirishi va
                     irodasini chiniqtirishi uchun yaratilgan.</p>
                 <h3 class="nimadir2">Qoidalar qat'iy:</h3>
-                <p>Har bir ishtirokchiga 15 tadan ball berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi. 6 kun
-                    davomida kimda eng ko'p ball saqlanib qolsa, o'sha g'olib. Agar kimdirning ball hisobi 0 bo'lib
-                    qoladigan bo'lsa u kishi hafta ohirida barchaga nimadir olib berishga majburdir!</p>
+                <p>Har bir ishtirokchiga 15 tadan ball berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi va
+                    avtomatik ravishda 2 000 so'm jarima hisoblanadi. 6 kun davomida kimda eng ko'p ball saqlanib qolsa,
+                    o'sha g'olib. Agar kimdirning ball hisobi 0 bo'lib qoladigan bo'lsa u kishi hafta ohirida barchaga
+                    nimadir olib berishga majburdir!</p>
                 <p class="quote">"Tiliga ehtiyot bo'lgan odam — eng kuchli odamdir."</p>
             </div>
         </div>
