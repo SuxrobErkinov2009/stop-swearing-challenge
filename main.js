@@ -354,7 +354,7 @@ if (startBtn) {
 
 if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
 if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
-if (infoBtn) infoBtn.onclick = () => modal.style.display = "block";
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 
 const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
