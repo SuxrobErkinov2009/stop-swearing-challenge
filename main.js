@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null }
 ];
 
 let logs = [];
@@ -20,12 +20,12 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari (4 ta teng sektorga to'g'rilandi: har biri 90 gradusdan)
+// Omad g'ildiragi shartlari (Mashq bajarmaslik o'rniga Qalqon qaytarildi va 4 ta sektorga moslandi)
 const WHEEL_OPTIONS = [
     { text: "Siz omadlisiz 😍", minDeg: 0, maxDeg: 90, type: "lucky" },
     { text: "2X jazo ehh 💀", minDeg: 91, maxDeg: 180, type: "double" },
     { text: "Hech narsa 🤐", minDeg: 181, maxDeg: 270, type: "nothing" },
-    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 271, maxDeg: 360, type: "no_exercise" }
+    { text: "Qalqon yutdingiz 🛡️", minDeg: 271, maxDeg: 360, type: "shield_reward" }
 ];
 
 let isSpinning = false;
@@ -94,8 +94,7 @@ function loadData() {
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : [],
-            // Agar localstorage'da qalqon qiymati noto'g'ri bo'lsa yoki nol bo'lsa, kamida 1 ta beradi
-            shields: (p.shields !== undefined && p.shields !== null) ? p.shields : 1,
+            shields: (p.shields !== undefined && p.shields !== null) ? p.shields : 0,
             lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
         endTime = parsed.endTime;
@@ -117,17 +116,18 @@ function loadData() {
     renderMoney();
 }
 
+// Qalqonlarni har 48 soatda avomatik yangilash logikasi
 function updateShieldsAuto() {
     if (!endTime) return;
     const now = Date.now();
     participants.forEach(p => {
         if (!p.lastShieldUpdate) { p.lastShieldUpdate = endTime - CHALLENGE_DURATION; }
         const diff = now - p.lastShieldUpdate;
-        const hours24 = 24 * 60 * 60 * 1000;
-        if (diff >= hours24) {
-            const count = Math.floor(diff / hours24);
+        const hours48 = 48 * 60 * 60 * 1000; // 48 soat taymerga o'zgartirildi
+        if (diff >= hours48) {
+            const count = Math.floor(diff / hours48);
             p.shields += count;
-            p.lastShieldUpdate = p.lastShieldUpdate + (count * hours24);
+            p.lastShieldUpdate = p.lastShieldUpdate + (count * hours48);
         }
     });
     saveData();
@@ -149,7 +149,7 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar himoya qalqoni mavjud bo'lsa, birinchi bo'lib qalqon ishlaydi va g'ildirak ochilmaydi
+        // Agar himoya qalqoni mavjud bo'lsa, u ishlab ketadi va g'ildirak ochilmaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
@@ -202,11 +202,10 @@ spinBtn.onclick = function () {
 
     setTimeout(() => {
         isSpinning = false;
-        // Pointer tepada bo'lgani bois burchakni teskari o'qish logikasi
         const normalizedDegree = (360 - (randomDegree % 360)) % 360;
 
         let targetOption = WHEEL_OPTIONS.find(opt => normalizedDegree >= opt.minDeg && normalizedDegree <= opt.maxDeg);
-        if (!targetOption) targetOption = WHEEL_OPTIONS[2]; // Xatolik oldini olish uchun "Hech narsa" bo'limi
+        if (!targetOption) targetOption = WHEEL_OPTIONS[2];
 
         wheelResult.innerText = `Natija: ${targetOption.text}`;
         currentWheelModifier = targetOption.type;
@@ -235,6 +234,15 @@ function executeWheelResult(option) {
         saveData(); renderUI(); renderLogs(); return;
     }
 
+    // G'ildirakda qalqon tushgandagi logika
+    if (option.type === "shield_reward") {
+        p.shields++;
+        logs.unshift({ name: p.name, remainingScore: p.score, reason: "🛡️ Omad g'ildiragidan 1 ta zaxira Himoya Qalqoni yutib oldi!", timestamp: Date.now() });
+        p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+        alert(`${p.name} zaxira qalqon yutib oldi! Keyingi safar jazo to'g'ridan-to'g'ri qaytariladi.`);
+        saveData(); renderUI(); renderLogs(); return;
+    }
+
     reasonTargetText.innerText = `${p.name} uchun jarima sababi [Natija: ${option.text}]:`;
     reasonInput.value = '';
     reasonModal.style.display = "flex";
@@ -256,8 +264,6 @@ submitReasonBtn.onclick = function () {
         if (currentWheelModifier === "double") {
             p.exercises.push(`2X ${randomExercise}`);
             logActionPrefix = "💀 [2X JAZO] Sabab";
-        } else if (currentWheelModifier === "no_exercise") {
-            logActionPrefix = "🧘‍♂️ [Mashqsiz Jazo] Sabab";
         } else {
             p.exercises.push(randomExercise);
         }
@@ -386,6 +392,7 @@ window.deleteLog = function (index) {
     });
 };
 
+// Karta interfeysidan qalqon belgisi to'liq olib tashlandi
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
@@ -413,11 +420,10 @@ function renderUI() {
         else if (isGameOver) { statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`; }
         else { statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`; }
 
-        const shieldDisplay = p.shields > 0 ? `<div class="shield-box">🛡️ x${p.shields}</div>` : '';
+        // Sening so'roving bo'yicha card ichidan shield nishoni olib tashlandi.
 
         card.innerHTML = `
             <span class="crown-icon">👑</span>
-            ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
             <div id="shield-alert-${p.id}" class="shield-alert-text" style="display: none;"></div>
@@ -474,7 +480,7 @@ if (startBtn) {
             endTime = Date.now() + CHALLENGE_DURATION;
             participants.forEach(p => {
                 p.lastShieldUpdate = Date.now();
-                p.shields = 1; // Start bosilganda barchaga 1 tadan qalqon beriladi
+                p.shields = 0; // Yangi o'yinda ham hamma 0 ta qalqon bilan boshlaydi
             });
             saveData(); loadData();
         }
