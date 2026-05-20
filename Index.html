@@ -4,20 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./main.css">
     <title>Stop Swearing Challenge</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div id="flash-overlay" class="flash-overlay"></div>
+
+    <div class="flash-overlay" id="flash-overlay"></div>
 
     <header class="header">
-        <div class="container">
-            <div class="header__wrapper">
-                <img class="header__img" src="./img/Sayt logotipi.png" alt="Logo">
-                <div id="timer-display" class="timer-display">06:00:00:00</div>
-                <button id="infoBtn" class="premium-btn">To'liq malumot</button>
+        <div class="container header__wrapper">
+            <div class="logo-area" style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">🚫</span>
+                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: 1px;">DON'T SWEAR</h2>
             </div>
+            <div class="timer-display" id="timer-display">06:00:00:00</div>
+            <button class="premium-btn" id="infoBtn">To'liq ma'lumot</button>
         </div>
     </header>
 
@@ -25,53 +27,64 @@
         <section class="stats-section">
             <div class="stat-card shadow-blue">
                 <div class="stat-title">Nutq Qiroli 👑</div>
-                <div id="stat-king" class="stat-value text-gold">--</div>
+                <div class="stat-value text-gold" id="stat-king">--</div>
             </div>
             <div class="stat-card shadow-red">
                 <div class="stat-title">Xavf Ostidagilar ⚠️</div>
-                <div id="stat-danger" class="stat-value text-red">--</div>
+                <div class="stat-value text-red" id="stat-danger">--</div>
             </div>
             <div class="stat-card shadow-purple">
                 <div class="stat-title">Jami Yo'qotilgan Ballar 📉</div>
-                <div id="stat-total-lost" class="stat-value text-purple">0</div>
+                <div class="stat-value text-purple" id="stat-total-lost">0</div>
             </div>
         </section>
 
-        <section class="hero" id="participants-grid"></section>
+        <section id="participants-grid"></section>
+
+        <div class="controls">
+            <button class="main-btn" id="startTimerBtn">Challengeni Boshlash</button>
+            <button class="main-btn reset-btn" id="refreshBtn" style="display: none;">Noldan Boshlash</button>
+        </div>
 
         <section class="money-section">
-            <div class="money-header">Jismoniy jarimalar hisoboti 💪</div>
-            <div id="money-container" class="money-container"></div>
+            <div class="money-header">Jismoniy jaramalar hisoboti 💪</div>
+            <div class="money-container" id="money-container"></div>
         </section>
 
         <section class="logs-section">
-            <div class="logs-header">Jarima va Qoidabuzarliklar Tarixi 📋</div>
-            <div id="logs-container" class="logs-container">
-                <div class="no-logs">Hozircha hech kim qoidani buzgani yo'q. Baraka topinglar! 🙌</div>
-            </div>
-        </section>
-
-        <section class="controls">
-            <button id="startTimerBtn" class="main-btn">Vaqtni ishga tushirish</button>
-            <button id="saveBtn" class="main-btn blue-btn">Natijalarni saqlash</button>
-            <button id="refreshBtn" class="main-btn reset-btn" style="display: none;">Yangitdan boshlash</button>
+            <div class="logs-header">Jarimalar va Qoidabuzarliklar Tarixi 📋</div>
+            <div class="logs-container" id="logs-container"></div>
         </section>
     </main>
 
-    <div id="passwordModal" class="modal">
-        <div class="modal-content reason-modal-content" style="border-color: #ffd700;">
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2 class="nimadir" style="color: #ffd700;">Xavfsizlik Tizimi 🔒</h2>
+                <div class="nimadir">Challenge Qoidalari</div>
+                <span class="close-modal" id="closeInfoBtn">&times;</span>
             </div>
             <div class="modal-body">
-                <p style="color: #fff; font-weight: 600; margin-bottom: 15px;">Tizim blokdan chiqarilishi uchun admin
-                    parolini kiriting:</p>
-                <input type="password" id="adminPasswordInput" class="reason-input" placeholder="Parolni yozing..."
-                    autocomplete="off">
+                <p>1. Har bir ishtirokchi challengeni 15 ball bilan boshlaydi.</p>
+                <p>2. Haqoratli so'z ishlatilganda Omad g'ildiragi aylantiriladi va tushgan shart bajariladi.</p>
+                <p>3. Har 48 soatda ishtirokchilarga avtomatik ravishda 1 tadan himoya Qalqoni (🛡️) qo'shiladi.</p>
+                <div class="quote" style="margin-top: 15px; font-style: italic; color: var(--accent);">"Nutqimizni toza
+                    saqlaylik!"</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="modal">
+        <div class="modal-content reason-modal-content">
+            <div class="modal-header">
+                <div class="nimadir" style="color: var(--accent);">Admin Paroli</div>
+            </div>
+            <div class="modal-body">
+                <p>Tasdiqlash uchun xavfsizlik kodini kiriting:</p>
+                <input type="password" id="adminPasswordInput" class="reason-input" placeholder="Parol...">
                 <div class="reason-modal-btns">
-                    <button id="cancelPasswordBtn" class="modal-action-btn cancel-btn">Bekor qilish</button>
-                    <button id="submitPasswordBtn" class="modal-action-btn confirm-btn"
-                        style="background: #ffd700; color: #000;">Kirish</button>
+                    <button class="modal-action-btn cancel-btn" id="cancelPasswordBtn">Bekor qilish</button>
+                    <button class="modal-action-btn confirm-btn" id="submitPasswordBtn"
+                        style="background: var(--accent); color: #000;">Kiritish</button>
                 </div>
             </div>
         </div>
@@ -80,41 +93,36 @@
     <div id="reasonModal" class="modal">
         <div class="modal-content reason-modal-content">
             <div class="modal-header">
-                <h2 class="nimadir" style="color: #ff4757;">Ball Ayirish Sababi ⚠️</h2>
+                <div class="nimadir">Qoidabuzarlik Sababi</div>
             </div>
             <div class="modal-body">
-                <p id="reasonModalTarget" style="color: #fff; font-weight: 600; margin-bottom: 15px;"></p>
+                <p id="reasonModalTarget">Ishtirokchi uchun sabab yozing:</p>
                 <input type="text" id="penaltyReasonInput" class="reason-input"
-                    placeholder="Masalan: Guruhda haqoratli so'z ishlatdi..." autocomplete="off">
+                    placeholder="Masalan: So'kinganligi uchun...">
                 <div class="reason-modal-btns">
-                    <button id="cancelReasonBtn" class="modal-action-btn cancel-btn">Bekor qilish</button>
-                    <button id="submitReasonBtn" class="modal-action-btn confirm-btn">Tasdiqlash</button>
+                    <button class="modal-action-btn cancel-btn" id="cancelReasonBtn">Bekor qilish</button>
+                    <button class="modal-action-btn confirm-btn" id="submitReasonBtn">Tasdiqlash</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="infoModal" class="modal">
-        <div class="modal-content">
+    <div id="wheelModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding-bottom: 30px;">
             <div class="modal-header">
-                <h2 class="nimadir">Challenge Haqida</h2>
-                <span class="close-modal">&times;</span>
+                <div class="nimadir" style="width:100%;">Omad G'ildiragi 🎰</div>
             </div>
-            <div class="modal-body">
-                <h3 class="nimadir2">Nima uchun bu o'yinni boshladik?</h3>
-                <p>Ushbu challenge insonning o'z nutqini nazorat qilishi, madaniyatli muloqotni shakllantirishi va
-                    irodasini chiniqtirishi uchun yaratilgan.</p>
-                <h3 class="nimadir2">Qoidalar qat'iy:</h3>
-                <p>Har bir ishtirokchiga 15 tadan ball berilgan. Har bir nojo'ya so'z uchun 1 ball ayiriladi va
-                    avtomatik ravishda 2 000 so'm jarima hisoblanadi. 6 kun davomida kimda eng ko'p ball saqlanib qolsa,
-                    o'sha g'olib. Agar kimdirning ball hisobi 0 bo'lib qoladigan bo'lsa u kishi hafta ohirida barchaga
-                    nimadir olib berishga majburdir!</p>
-                <p class="quote">"Tiliga ehtiyot bo'lgan odam — eng kuchli odamdir."</p>
+            <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                <div id="wheelCanvas" style="width: 260px; height: 260px; border-radius: 50%;"></div>
+                <div id="wheelResult" style="font-size: 16px; font-weight: 800; min-height: 24px; color: #fff;">
+                    G'ildirakni aylantiring...</div>
+                <button id="spinBtn" class="main-btn"
+                    style="background: var(--accent); color: #000; width: 80%; padding: 12px;">AYLANTIRISH</button>
             </div>
         </div>
     </div>
 
-    <script src="./main.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>
