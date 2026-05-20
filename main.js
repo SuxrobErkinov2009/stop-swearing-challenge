@@ -15,13 +15,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let participants = [
+// Agar bazada hech narsa bo'lmasa, mana shu boshlang'ich ro'yxat yuklanadi
+const DEFAULT_PARTICIPANTS = [
     { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
     { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
     { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
     { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null }
 ];
 
+let participants = [...DEFAULT_PARTICIPANTS];
 let logs = [];
 let activeParticipantId = null;
 let securityCallback = null;
@@ -96,30 +98,38 @@ function loadData() {
     const dataRef = ref(db, 'challenge_data');
     onValue(dataRef, (snapshot) => {
         const parsed = snapshot.val();
-        if (parsed) {
-            if (parsed.participants) {
-                participants = parsed.participants.map(p => ({
-                    ...p,
-                    exercises: p.exercises !== undefined ? p.exercises : []
-                }));
-            }
-            endTime = parsed.endTime || null;
-            logs = parsed.logs || [];
 
-            if (endTime) {
-                if (Date.now() < endTime) {
-                    if (startBtn) startBtn.style.display = 'none';
-                    startTimer();
-                } else {
-                    showRefreshUI();
-                }
-            }
-            renderUI();
-            renderLogs();
-            renderMoney();
-        } else {
+        // Agar onlayn baza bo'sh bo'lsa, birinchi marta boshlang'ich ma'lumotlarni yozib oladi
+        if (!parsed || !parsed.participants || parsed.participants.length === 0) {
+            participants = [...DEFAULT_PARTICIPANTS];
+            endTime = null;
+            logs = [];
             saveData();
+            return;
         }
+
+        participants = parsed.participants.map(p => ({
+            ...p,
+            exercises: p.exercises !== undefined ? p.exercises : []
+        }));
+        endTime = parsed.endTime || null;
+        logs = parsed.logs || [];
+
+        if (endTime) {
+            if (Date.now() < endTime) {
+                if (startBtn) startBtn.style.display = 'none';
+                startTimer();
+            } else {
+                showRefreshUI();
+            }
+        } else {
+            if (timerDisplay) timerDisplay.innerText = "06:00:00:00";
+            if (startBtn) startBtn.style.display = 'inline-block';
+        }
+
+        renderUI();
+        renderLogs();
+        renderMoney();
     });
 }
 
@@ -323,13 +333,16 @@ function renderUI() {
     const maxScore = Math.max(...scores);
 
     let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
-    document.getElementById('stat-total-lost').innerText = totalLost;
+    const totalLostEl = document.getElementById('stat-total-lost');
+    if (totalLostEl) totalLostEl.innerText = totalLost;
 
     let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
-    document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
+    const kingEl = document.getElementById('stat-king');
+    if (kingEl) kingEl.innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
 
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
-    document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
+    const dangerEl = document.getElementById('stat-danger');
+    if (dangerEl) dangerEl.innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -376,7 +389,7 @@ function startTimer() {
         const timeLeft = endTime - now;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            timerDisplay.innerText = "00:00:00:00";
+            if (timerDisplay) timerDisplay.innerText = "00:00:00:00";
             showRefreshUI();
             renderUI();
         } else {
@@ -384,7 +397,7 @@ function startTimer() {
             const h = Math.floor((timeLeft % 86400000) / 3600000);
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
-            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            if (timerDisplay) timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
     }, 1000);
 }
