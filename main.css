@@ -759,6 +759,188 @@ body {
     color: white;
 }
 
+/* ==========================================================================
+   MODAL OYNALARINI TOG'IRLASH (MARKAZLASHTIRISH VA FIX QILISH)
+   ========================================================================== */
+
+.modal {
+    display: none;
+    /* JS boshqarishi uchun default yopiq turadi */
+    position: fixed;
+    /* Ekranga nisbatan qat'iy joylashadi */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    /* Butun ekran kengligi */
+    height: 100vh;
+    /* Butun ekran balandligi */
+    background: rgba(0, 0, 0, 0.85);
+    /* Orqa fonni chiroyli qoraytirish */
+    backdrop-filter: blur(8px);
+    /* Orqa fonni xiralashtirish */
+    z-index: 99999;
+    /* Hamma narsadan, hatto headerdan ham tepada turadi */
+    align-items: center;
+    /* Ichidagi kontentni vertikal markazlash */
+    justify-content: center;
+    /* Ichidagi kontentni gorizontal markazlash */
+    padding: 20px;
+}
+
+/* Modallarning ichki oq qutisi (kontent qismi) */
+.modal-content {
+    background: linear-gradient(165deg, #141414 0%, #050505 100%);
+    width: 100%;
+    max-width: 500px;
+    /* Maksimal kenglik */
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 212, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    animation: modalShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Modal ochilganda tepadan chiroyli tushish animatsiyasi */
+@keyframes modalShow {
+    from {
+        transform: translateY(-30px) scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.nimadir {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.nimadir2 {
+    color: var(--accent);
+    font-size: 17px;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.modal-body p {
+    color: #aaa;
+    line-height: 1.6;
+    font-size: 15px;
+    margin-bottom: 15px;
+}
+
+.quote {
+    font-style: italic;
+    color: var(--gold);
+    text-align: center;
+    padding: 15px;
+    border-top: 1px solid rgba(255, 215, 0, 0.15);
+    margin-top: 20px;
+}
+
+.close-modal {
+    font-size: 28px;
+    color: #555;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.close-modal:hover {
+    color: #ff4757;
+}
+
+/* Alohida modallarning maxsus chegaralari */
+.reason-modal-content {
+    max-width: 460px;
+    border-color: rgba(255, 71, 87, 0.3);
+}
+
+#passwordModal .reason-modal-content {
+    border-color: rgba(255, 215, 0, 0.4);
+    /* Parol modal oltin rangda */
+}
+
+#wheelModal .reason-modal-content {
+    border-color: rgba(0, 212, 255, 0.4);
+    /* Ruletka modal neon ko'k rangda */
+}
+
+.reason-input {
+    width: 100%;
+    padding: 14px 18px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+    margin-bottom: 22px;
+    transition: border-color 0.3s ease;
+}
+
+.reason-input:focus {
+    outline: none;
+    border-color: var(--red);
+}
+
+.reason-modal-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-action-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+}
+
+.modal-action-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+.cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+}
+
+.confirm-btn {
+    background: var(--red);
+    color: white;
+}
+
+/* Omad g'ildiragi komponentlari o'rtada turishi uchun */
+.wheel-wrapper {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    margin: 15px auto;
+}
+
 @media (max-width: 1200px) {
     #participants-grid {
         grid-template-columns: repeat(2, 1fr);
