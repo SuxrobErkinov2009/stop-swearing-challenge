@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null }
 ];
 
 let logs = [];
@@ -19,6 +19,18 @@ const EXERCISE_POOL = [
     "100 ta o'tirib turish 🏃‍♂️",
     "50 ta pres kachat 🏋️‍♂️"
 ];
+
+// Omad g'ildiragi shartlari va ularning burilish burchaklari masofasi (conic-gradient sektorlariga mos)
+const WHEEL_OPTIONS = [
+    { text: "Siz omadlisiz 😍", minDeg: 1, maxDeg: 71, type: "lucky" },
+    { text: "2X jazo ehh 💀", minDeg: 73, maxDeg: 143, type: "double" },
+    { text: "Hech narsa 🤐", minDeg: 145, maxDeg: 215, type: "nothing" },
+    { text: "Plus qalqon 🛡️", minDeg: 217, maxDeg: 287, type: "shield" },
+    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 289, maxDeg: 359, type: "no_exercise" }
+];
+
+let isSpinning = false;
+let currentWheelModifier = "nothing"; // G'ildirak natijasini ushlab turadi
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -41,6 +53,13 @@ const passwordModal = document.getElementById("passwordModal");
 const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
+
+// Omad g'ildiragi elementlari
+const wheelModal = document.getElementById("wheelModal");
+const wheelCanvas = document.getElementById("wheelCanvas");
+const wheelResult = document.getElementById("wheelResult");
+const spinBtn = document.getElementById("spinBtn");
+const wheelTargetText = document.getElementById("wheelTargetText");
 
 function verifySecureKey(input) {
     return btoa(input) === "ODU5MDA5MTExNw==";
@@ -78,11 +97,17 @@ function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants.map(p => ({
             ...p,
-            exercises: p.exercises !== undefined ? p.exercises : []
+            exercises: p.exercises !== undefined ? p.exercises : [],
+            shields: p.shields !== undefined ? p.shields : 0,
+            lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
         endTime = parsed.endTime;
         logs = parsed.logs || [];
     }
+
+    // Har 24 soatda avtomatik qalqon qo'shish mantiqi
+    updateShieldsAuto();
+
     if (endTime) {
         if (Date.now() < endTime) {
             if (startBtn) startBtn.style.display = 'none';
@@ -96,6 +121,24 @@ function loadData() {
     renderMoney();
 }
 
+function updateShieldsAuto() {
+    if (!endTime) return;
+    const now = Date.now();
+    participants.forEach(p => {
+        if (!p.lastShieldUpdate) {
+            p.lastShieldUpdate = endTime - CHALLENGE_DURATION; // Challenge boshlangan vaqt
+        }
+        const diff = now - p.lastShieldUpdate;
+        const hours24 = 24 * 60 * 60 * 1000;
+        if (diff >= hours24) {
+            const count = Math.floor(diff / hours24);
+            p.shields += count;
+            p.lastShieldUpdate = p.lastShieldUpdate + (count * hours24);
+        }
+    });
+    saveData();
+}
+
 function triggerFlashEffect() {
     if (!flashOverlay) return;
     flashOverlay.classList.add("flash-active");
@@ -104,6 +147,7 @@ function triggerFlashEffect() {
     }, 150);
 }
 
+// Minus tugmasi bosilganda birinchi bo'lib tekshirish
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -113,13 +157,127 @@ window.subtract = function (id) {
 
     askPassword(() => {
         activeParticipantId = id;
-        reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
-        reasonInput.value = '';
-        reasonModal.style.display = "flex";
-        reasonInput.focus();
+
+        // Agar o'yinchida qalqon bo'lsa, g'ildiraksiz va jazosiz to'g'ridan-to'g'ri qalqon ishlaydi!
+        if (p.shields > 0) {
+            triggerShieldProtection(p);
+            return;
+        }
+
+        // Qalqoni bo'lmasa -> Omad g'ildiragi modalini ochish
+        wheelTargetText.innerText = `${p.name} uchun Omad G'ildiragi aylantirilmoqda!`;
+        wheelResult.innerText = "G'ildirakni aylantiring...";
+        wheelCanvas.style.transform = "rotate(0deg)";
+        wheelModal.style.display = "flex";
     });
 };
 
+// Qalqon saqlab qolish mantiqi va vizual effekti
+function triggerShieldProtection(p) {
+    p.shields--; // bitta qalqon sinadi
+    p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+
+    // Qalqon saqlab qolganligi haqida log yozish
+    logs.unshift({
+        name: p.name,
+        remainingScore: p.score,
+        reason: "🛡️ Himoya qalqoni tufayli omon qoldi! Ball ayirilmadi.",
+        timestamp: Date.now()
+    });
+
+    // Maxsus qalqon tovushi
+    try {
+        const shieldAudio = new Audio('./ovozlar/shield.MP3');
+        shieldAudio.play();
+    } catch (e) { console.log("Ovoz fayli topilmadi"); }
+
+    saveData();
+    renderUI();
+    renderLogs();
+
+    // Kartochka ichida 2 soniya yozuv chiqarish
+    const cardMsgBox = document.getElementById(`shield-alert-${p.id}`);
+    if (cardMsgBox) {
+        cardMsgBox.innerText = "Sizni qalqoningiz saqlab qoldi! 🛡️";
+        cardMsgBox.style.display = "block";
+        setTimeout(() => {
+            cardMsgBox.style.display = "none";
+        }, 2000);
+    }
+}
+
+// Omad g'ildiragini aylantirish tugmasi mantiqi
+spinBtn.onclick = function () {
+    if (isSpinning) return;
+    isSpinning = true;
+    wheelResult.innerText = "G'ildirak aylanmoqda... 🎲";
+
+    // Tasodifiy burchak tanlash (kamida 5 ta to'liq aylanish + tasodifiy burchak)
+    const randomDegree = Math.floor(Math.random() * 360);
+    const totalRotation = 1800 + randomDegree;
+
+    wheelCanvas.style.transform = `rotate(${totalRotation}deg)`;
+
+    setTimeout(() => {
+        isSpinning = false;
+
+        // Strela tepada (0 gradusda) turgani uchun, burilish burchagi qaysi sektorga tushganini hisoblaymiz
+        const normalizedDegree = (360 - (randomDegree % 360)) % 360;
+
+        let targetOption = WHEEL_OPTIONS.find(opt => normalizedDegree >= opt.minDeg && normalizedDegree <= opt.maxDeg);
+        if (!targetOption) targetOption = WHEEL_OPTIONS[2]; // Agar aniqlanmasa, default "Hech narsa"
+
+        wheelResult.innerText = `Natija: ${targetOption.text}`;
+        currentWheelModifier = targetOption.type;
+
+        setTimeout(() => {
+            wheelModal.style.display = "none";
+            executeWheelResult(targetOption);
+        }, 1500);
+
+    }, 4000); // CSS transition 4 soniyaga sozlangan
+};
+
+// G'ildirak natijasiga qarab o'yinni davom ettirish
+function executeWheelResult(option) {
+    const p = participants.find(x => x.id === activeParticipantId);
+    if (!p) return;
+
+    // 1-SHART: Siz omadlisiz! (Avtomatik 1 ball qo'shiladi)
+    if (option.type === "lucky") {
+        if (p.score >= 15) {
+            alert(`${p.name}da maksimal ball (15) mavjud! Ball qo'shilmadi.`);
+
+            logs.unshift({
+                name: p.name,
+                remainingScore: p.score,
+                reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin ball 15 bo'lgani uchun qo'shilmadi.",
+                timestamp: Date.now()
+            });
+        } else {
+            p.score++;
+            logs.unshift({
+                name: p.name,
+                remainingScore: p.score,
+                reason: "🍀 Omad g'ildiragida omadi keldi va avtomatik +1 ball mukofot oldi!",
+                timestamp: Date.now()
+            });
+        }
+        p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+        saveData();
+        renderUI();
+        renderLogs();
+        return;
+    }
+
+    // Qolgan 4 ta shart uchun sabab yozish modalini ochish kerak
+    reasonTargetText.innerText = `${p.name} uchun jarima sababini yozing [Natija: ${option.text}]:`;
+    reasonInput.value = '';
+    reasonModal.style.display = "flex";
+    reasonInput.focus();
+}
+
+// Sabab modalining tasdiqlash tugmasi bosilganda
 submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
     if (!reasonText) {
@@ -127,39 +285,65 @@ submitReasonBtn.onclick = function () {
         return;
     }
 
-    const id = activeParticipantId;
-    const p = participants.find(x => x.id === id);
+    const p = participants.find(x => x.id === activeParticipantId);
     const now = Date.now();
 
     if (p) {
-        p.score--;
+        p.score--; // ball baribir ayiriladi (1-shartdan tashqari hammasida)
 
+        // Mashqlar pooldan tasodifiy olish
         const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-        p.exercises.push(randomExercise);
+
+        let logActionPrefix = "🚨 Sabab";
+
+        // G'ildirak modifikatorlarini tekshirish
+        if (currentWheelModifier === "double") {
+            // 2-SHART: 2X jazo!
+            p.exercises.push(`2X ${randomExercise}`);
+            logActionPrefix = "💀 [2X JAZO] Sabab";
+        }
+        else if (currentWheelModifier === "no_exercise") {
+            // 5-SHART: Mashq bajarmaslik (Jismoniy jarimaga hech narsa yozilmaydi)
+            logActionPrefix = "🧘‍♂️ [Mashqsiz Jazo] Sabab";
+        }
+        else if (currentWheelModifier === "shield") {
+            // 4-SHART: Plus qalqon (+1 ta himoya qo'shiladi)
+            p.shields++;
+            logActionPrefix = "🛡️ [+1 Qalqon berildi] Sabab";
+        }
+        else {
+            // 3-SHART: Hech narsa (Oddiy jazo va mashq)
+            p.exercises.push(randomExercise);
+        }
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
+        // Jarimalar tarixiga qo'shish
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
-            reason: reasonText,
+            reason: `${logActionPrefix}: ${reasonText}`,
             timestamp: now
         });
 
         reasonModal.style.display = "none";
         triggerFlashEffect();
 
+        // Ovoz effekti boshqaruvi sening eski kodlaring mantiqida
         if (p.score === 0) {
-            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
-            gameOverAudio.play();
+            try {
+                const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
+                gameOverAudio.play();
+            } catch (e) { }
         } else {
-            const errorAudio = new Audio('./ovozlar/error.MP3');
-            errorAudio.play();
-
-            setTimeout(() => {
-                const lockAudio = new Audio('./ovozlar/lock.MP3');
-                lockAudio.play();
-            }, 1000);
+            try {
+                const errorAudio = new Audio('./ovozlar/error.MP3');
+                errorAudio.play();
+                setTimeout(() => {
+                    const lockAudio = new Audio('./ovozlar/lock.MP3');
+                    lockAudio.play();
+                }, 1000);
+            } catch (e) { }
         }
 
         saveData();
@@ -167,7 +351,7 @@ submitReasonBtn.onclick = function () {
         renderLogs();
         renderMoney();
 
-        const scoreEl = document.getElementById(`score-${id}`);
+        const scoreEl = document.getElementById(`score-${p.id}`);
         if (scoreEl) {
             scoreEl.classList.add('score-change');
             setTimeout(() => scoreEl.classList.remove('score-change'), 500);
@@ -184,7 +368,7 @@ window.payFine = function (id, exerciseIndex) {
     if (!p || !p.exercises || p.exercises.length === 0) return;
 
     askPassword(() => {
-        if (confirm(`Ushbu mashq bajarildimi? Ro'yxatdan o'chiramizmi?`)) {
+        if (confirm(`Ushbu jismoniy mashq chindan bajarildimi?`)) {
             p.exercises.splice(exerciseIndex, 1);
             saveData();
             renderMoney();
@@ -204,13 +388,13 @@ function renderMoney() {
         row.style.padding = '15px';
 
         let exercisesHtml = '';
-        if (p.exercises.length === 0) {
+        if (!p.exercises || p.exercises.length === 0) {
             exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
         } else {
             p.exercises.forEach((ex, idx) => {
                 exercisesHtml += `
                     <div class="money-right" style="width: 100%; justify-content: space-between; margin-bottom: 5px;">
-                        <div class="money-val" style="font-size: 15px;">🏃 Majburiyat: ${ex}</div>
+                        <div class="money-val" style="font-size: 15px;">🏋️ Jismoniy vazifa: ${ex}</div>
                         <button class="pay-btn" onclick="payFine(${p.id}, ${idx})">Bajarildi</button>
                     </div>
                 `;
@@ -229,17 +413,13 @@ function renderMoney() {
 
 function formatLogTime(item) {
     if (!item.timestamp && !item.time) return "Noma'lum vaqt";
-
     const date = item.timestamp ? new Date(item.timestamp) : new Date();
     const now = new Date();
-
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     const logDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-    const timeString = item.timestamp
-        ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-        : item.time;
+    const timeString = item.timestamp ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : item.time;
 
     if (logDate.getTime() === today.getTime() || !item.timestamp) {
         return `Bugun, ${timeString}`;
@@ -248,8 +428,7 @@ function formatLogTime(item) {
     } else {
         const day = date.getDate();
         const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
-        const monthName = months[date.getMonth()];
-        return `${day}-${monthName}, ${timeString}`;
+        return `${day}-${months[date.getMonth()]}, ${timeString}`;
     }
 }
 
@@ -264,13 +443,12 @@ function renderLogs() {
     logs.forEach((item, index) => {
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
-
         const displayTime = formatLogTime(item);
 
         logItem.innerHTML = `
             <div class="log-left">
                 <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
-                <div class="log-reason">🚨 Sabab: ${item.reason}</div>
+                <div class="log-reason">${item.reason}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="log-time">${displayTime}</div>
@@ -318,17 +496,25 @@ function renderUI() {
 
         let statusHtml = '';
         if (p.score <= 0) {
-            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz, sog'ilishga tayyor turing!!! 💀</div>`;
+            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz! 💀</div>`;
         } else if (isGameOver) {
-            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Siz azoblash xizmatidan qutilib qoldingiz!!! 🎉</div>`;
+            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`;
         } else {
             statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`;
         }
 
+        // Qalqonlar bor bo'lsa vizual ravishda 🛡️ belgilarini chiqarish
+        const shieldCount = p.shields || 0;
+        const shieldDisplay = shieldCount > 0 ? `<div class="shield-box">🛡️ x${shieldCount}</div>` : '';
+
         card.innerHTML = `
             <span class="crown-icon">👑</span>
+            ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
+            
+            <div id="shield-alert-${p.id}" class="shield-alert-text" style="display: none;"></div>
+
             <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
                 ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} 
                 onclick="subtract(${p.id})">
@@ -367,9 +553,13 @@ function startTimer() {
     }, 1000);
 }
 
+// Sekundlik umumiy tekshiruv va avtomatik yangilanishlar
 setInterval(() => {
     const now = Date.now();
     let shartliYangilash = false;
+
+    // Har soatda qalqonlarni vaqtini tekshirish
+    updateShieldsAuto();
 
     participants.forEach(p => {
         if (p.nextAllowedTime) {
@@ -397,6 +587,11 @@ if (startBtn) {
     startBtn.onclick = () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
+            // Boshlanganda qalqon vaqtini ham biriktiramiz
+            participants.forEach(p => {
+                p.lastShieldUpdate = Date.now();
+                p.shields = 0;
+            });
             saveData();
             loadData();
         }
@@ -411,4 +606,5 @@ const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
+// Sayt ochilganda ma'lumotlarni yuklash
 loadData();
