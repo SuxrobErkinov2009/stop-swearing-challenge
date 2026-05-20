@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 1, lastShieldUpdate: null }
 ];
 
 let logs = [];
@@ -20,17 +20,16 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari va ularning burilish burchaklari masofasi (conic-gradient sektorlariga mos)
+// Omad g'ildiragi shartlari (Qalqon olib tashlandi, 4 ta sektorga moslandi)
 const WHEEL_OPTIONS = [
-    { text: "Siz omadlisiz 😍", minDeg: 1, maxDeg: 71, type: "lucky" },
-    { text: "2X jazo ehh 💀", minDeg: 73, maxDeg: 143, type: "double" },
-    { text: "Hech narsa 🤐", minDeg: 145, maxDeg: 215, type: "nothing" },
-    { text: "Plus qalqon 🛡️", minDeg: 217, maxDeg: 287, type: "shield" },
-    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 289, maxDeg: 359, type: "no_exercise" }
+    { text: "Siz omadlisiz 😍", minDeg: 1, maxDeg: 90, type: "lucky" },
+    { text: "2X jazo ehh 💀", minDeg: 91, maxDeg: 180, type: "double" },
+    { text: "Hech narsa 🤐", minDeg: 181, maxDeg: 270, type: "nothing" },
+    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 271, maxDeg: 359, type: "no_exercise" }
 ];
 
 let isSpinning = false;
-let currentWheelModifier = "nothing"; // G'ildirak natijasini ushlab turadi
+let currentWheelModifier = "nothing";
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -54,7 +53,6 @@ const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 
-// Omad g'ildiragi elementlari
 const wheelModal = document.getElementById("wheelModal");
 const wheelCanvas = document.getElementById("wheelCanvas");
 const wheelResult = document.getElementById("wheelResult");
@@ -82,9 +80,7 @@ submitPasswordBtn.onclick = function () {
     }
 };
 
-cancelPasswordBtn.onclick = function () {
-    passwordModal.style.display = "none";
-};
+cancelPasswordBtn.onclick = function () { passwordModal.style.display = "none"; };
 
 function saveData() {
     const data = { participants, endTime, logs };
@@ -98,14 +94,13 @@ function loadData() {
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : [],
-            shields: p.shields !== undefined ? p.shields : 0,
+            shields: p.shields !== undefined ? p.shields : 1,
             lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
         endTime = parsed.endTime;
         logs = parsed.logs || [];
     }
 
-    // Har 24 soatda avtomatik qalqon qo'shish mantiqi
     updateShieldsAuto();
 
     if (endTime) {
@@ -125,9 +120,7 @@ function updateShieldsAuto() {
     if (!endTime) return;
     const now = Date.now();
     participants.forEach(p => {
-        if (!p.lastShieldUpdate) {
-            p.lastShieldUpdate = endTime - CHALLENGE_DURATION; // Challenge boshlangan vaqt
-        }
+        if (!p.lastShieldUpdate) { p.lastShieldUpdate = endTime - CHALLENGE_DURATION; }
         const diff = now - p.lastShieldUpdate;
         const hours24 = 24 * 60 * 60 * 1000;
         if (diff >= hours24) {
@@ -142,12 +135,9 @@ function updateShieldsAuto() {
 function triggerFlashEffect() {
     if (!flashOverlay) return;
     flashOverlay.classList.add("flash-active");
-    setTimeout(() => {
-        flashOverlay.classList.remove("flash-active");
-    }, 150);
+    setTimeout(() => { flashOverlay.classList.remove("flash-active"); }, 150);
 }
 
-// Minus tugmasi bosilganda birinchi bo'lib tekshirish
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -158,13 +148,12 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar o'yinchida qalqon bo'lsa, g'ildiraksiz va jazosiz to'g'ridan-to'g'ri qalqon ishlaydi!
+        // Agar himoya qalqoni mavjud bo'lsa, to'g'ridan-to'g'ri qalqon ishlaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
         }
 
-        // Qalqoni bo'lmasa -> Omad g'ildiragi modalini ochish
         wheelTargetText.innerText = `${p.name} uchun Omad G'ildiragi aylantirilmoqda!`;
         wheelResult.innerText = "G'ildirakni aylantiring...";
         wheelCanvas.style.transform = "rotate(0deg)";
@@ -172,12 +161,10 @@ window.subtract = function (id) {
     });
 };
 
-// Qalqon saqlab qolish mantiqi va vizual effekti
 function triggerShieldProtection(p) {
-    p.shields--; // bitta qalqon sinadi
+    p.shields--;
     p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
 
-    // Qalqon saqlab qolganligi haqida log yozish
     logs.unshift({
         name: p.name,
         remainingScore: p.score,
@@ -185,34 +172,28 @@ function triggerShieldProtection(p) {
         timestamp: Date.now()
     });
 
-    // Maxsus qalqon tovushi
     try {
         const shieldAudio = new Audio('./ovozlar/shield.MP3');
         shieldAudio.play();
-    } catch (e) { console.log("Ovoz fayli topilmadi"); }
+    } catch (e) { }
 
     saveData();
     renderUI();
     renderLogs();
 
-    // Kartochka ichida 2 soniya yozuv chiqarish
     const cardMsgBox = document.getElementById(`shield-alert-${p.id}`);
     if (cardMsgBox) {
         cardMsgBox.innerText = "Sizni qalqoningiz saqlab qoldi! 🛡️";
         cardMsgBox.style.display = "block";
-        setTimeout(() => {
-            cardMsgBox.style.display = "none";
-        }, 2000);
+        setTimeout(() => { cardMsgBox.style.display = "none"; }, 2000);
     }
 }
 
-// Omad g'ildiragini aylantirish tugmasi mantiqi
 spinBtn.onclick = function () {
     if (isSpinning) return;
     isSpinning = true;
     wheelResult.innerText = "G'ildirak aylanmoqda... 🎲";
 
-    // Tasodifiy burchak tanlash (kamida 5 ta to'liq aylanish + tasodifiy burchak)
     const randomDegree = Math.floor(Math.random() * 360);
     const totalRotation = 1800 + randomDegree;
 
@@ -220,12 +201,10 @@ spinBtn.onclick = function () {
 
     setTimeout(() => {
         isSpinning = false;
-
-        // Strela tepada (0 gradusda) turgani uchun, burilish burchagi qaysi sektorga tushganini hisoblaymiz
         const normalizedDegree = (360 - (randomDegree % 360)) % 360;
 
         let targetOption = WHEEL_OPTIONS.find(opt => normalizedDegree >= opt.minDeg && normalizedDegree <= opt.maxDeg);
-        if (!targetOption) targetOption = WHEEL_OPTIONS[2]; // Agar aniqlanmasa, default "Hech narsa"
+        if (!targetOption) targetOption = WHEEL_OPTIONS[2];
 
         wheelResult.innerText = `Natija: ${targetOption.text}`;
         currentWheelModifier = targetOption.type;
@@ -235,90 +214,54 @@ spinBtn.onclick = function () {
             executeWheelResult(targetOption);
         }, 1500);
 
-    }, 4000); // CSS transition 4 soniyaga sozlangan
+    }, 4000);
 };
 
-// G'ildirak natijasiga qarab o'yinni davom ettirish
 function executeWheelResult(option) {
     const p = participants.find(x => x.id === activeParticipantId);
     if (!p) return;
 
-    // 1-SHART: Siz omadlisiz! (Avtomatik 1 ball qo'shiladi)
     if (option.type === "lucky") {
         if (p.score >= 15) {
-            alert(`${p.name}da maksimal ball (15) mavjud! Ball qo'shilmadi.`);
-
-            logs.unshift({
-                name: p.name,
-                remainingScore: p.score,
-                reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin ball 15 bo'lgani uchun qo'shilmadi.",
-                timestamp: Date.now()
-            });
+            alert(`${p.name}da ball maksimal holatda!`);
+            logs.unshift({ name: p.name, remainingScore: p.score, reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin ball 15 bo'lgani uchun o'zgarmadi.", timestamp: Date.now() });
         } else {
             p.score++;
-            logs.unshift({
-                name: p.name,
-                remainingScore: p.score,
-                reason: "🍀 Omad g'ildiragida omadi keldi va avtomatik +1 ball mukofot oldi!",
-                timestamp: Date.now()
-            });
+            logs.unshift({ name: p.name, remainingScore: p.score, reason: "🍀 Omad g'ildiragida +1 ball mukofot yutib oldi!", timestamp: Date.now() });
         }
         p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
-        saveData();
-        renderUI();
-        renderLogs();
-        return;
+        saveData(); renderUI(); renderLogs(); return;
     }
 
-    // Qolgan 4 ta shart uchun sabab yozish modalini ochish kerak
-    reasonTargetText.innerText = `${p.name} uchun jarima sababini yozing [Natija: ${option.text}]:`;
+    reasonTargetText.innerText = `${p.name} uchun jarima sababi [Natija: ${option.text}]:`;
     reasonInput.value = '';
     reasonModal.style.display = "flex";
     reasonInput.focus();
 }
 
-// Sabab modalining tasdiqlash tugmasi bosilganda
 submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
-    if (!reasonText) {
-        alert("Iltimos, sababni kiriting!");
-        return;
-    }
+    if (!reasonText) { alert("Iltimos, sababni kiriting!"); return; }
 
     const p = participants.find(x => x.id === activeParticipantId);
     const now = Date.now();
 
     if (p) {
-        p.score--; // ball baribir ayiriladi (1-shartdan tashqari hammasida)
-
-        // Mashqlar pooldan tasodifiy olish
+        p.score--;
         const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-
         let logActionPrefix = "🚨 Sabab";
 
-        // G'ildirak modifikatorlarini tekshirish
         if (currentWheelModifier === "double") {
-            // 2-SHART: 2X jazo!
             p.exercises.push(`2X ${randomExercise}`);
             logActionPrefix = "💀 [2X JAZO] Sabab";
-        }
-        else if (currentWheelModifier === "no_exercise") {
-            // 5-SHART: Mashq bajarmaslik (Jismoniy jarimaga hech narsa yozilmaydi)
+        } else if (currentWheelModifier === "no_exercise") {
             logActionPrefix = "🧘‍♂️ [Mashqsiz Jazo] Sabab";
-        }
-        else if (currentWheelModifier === "shield") {
-            // 4-SHART: Plus qalqon (+1 ta himoya qo'shiladi)
-            p.shields++;
-            logActionPrefix = "🛡️ [+1 Qalqon berildi] Sabab";
-        }
-        else {
-            // 3-SHART: Hech narsa (Oddiy jazo va mashq)
+        } else {
             p.exercises.push(randomExercise);
         }
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
-        // Jarimalar tarixiga qo'shish
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
@@ -329,27 +272,16 @@ submitReasonBtn.onclick = function () {
         reasonModal.style.display = "none";
         triggerFlashEffect();
 
-        // Ovoz effekti boshqaruvi sening eski kodlaring mantiqida
         if (p.score === 0) {
-            try {
-                const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
-                gameOverAudio.play();
-            } catch (e) { }
+            try { const gameOverAudio = new Audio('./ovozlar/gameover.MP3'); gameOverAudio.play(); } catch (e) { }
         } else {
             try {
-                const errorAudio = new Audio('./ovozlar/error.MP3');
-                errorAudio.play();
-                setTimeout(() => {
-                    const lockAudio = new Audio('./ovozlar/lock.MP3');
-                    lockAudio.play();
-                }, 1000);
+                const errorAudio = new Audio('./ovozlar/error.MP3'); errorAudio.play();
+                setTimeout(() => { const lockAudio = new Audio('./ovozlar/lock.MP3'); lockAudio.play(); }, 1000);
             } catch (e) { }
         }
 
-        saveData();
-        renderUI();
-        renderLogs();
-        renderMoney();
+        saveData(); renderUI(); renderLogs(); renderMoney();
 
         const scoreEl = document.getElementById(`score-${p.id}`);
         if (scoreEl) {
@@ -359,9 +291,7 @@ submitReasonBtn.onclick = function () {
     }
 };
 
-cancelReasonBtn.onclick = function () {
-    reasonModal.style.display = "none";
-};
+cancelReasonBtn.onclick = function () { reasonModal.style.display = "none"; };
 
 window.payFine = function (id, exerciseIndex) {
     const p = participants.find(x => x.id === id);
@@ -370,8 +300,7 @@ window.payFine = function (id, exerciseIndex) {
     askPassword(() => {
         if (confirm(`Ushbu jismoniy mashq chindan bajarildimi?`)) {
             p.exercises.splice(exerciseIndex, 1);
-            saveData();
-            renderMoney();
+            saveData(); renderMoney();
         }
     });
 };
@@ -403,9 +332,7 @@ function renderMoney() {
 
         row.innerHTML = `
             <div class="money-name" style="font-weight: bold; border-bottom: 1px solid #333; width: 100%; padding-bottom: 5px; color: #fff;">${p.name}</div>
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 5px;">
-                ${exercisesHtml}
-            </div>
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 5px;">${exercisesHtml}</div>
         `;
         moneyContainer.appendChild(row);
     });
@@ -421,15 +348,9 @@ function formatLogTime(item) {
 
     const timeString = item.timestamp ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : item.time;
 
-    if (logDate.getTime() === today.getTime() || !item.timestamp) {
-        return `Bugun, ${timeString}`;
-    } else if (logDate.getTime() === yesterday.getTime()) {
-        return `Kecha, ${timeString}`;
-    } else {
-        const day = date.getDate();
-        const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
-        return `${day}-${months[date.getMonth()]}, ${timeString}`;
-    }
+    if (logDate.getTime() === today.getTime() || !item.timestamp) { return `Bugun, ${timeString}`; }
+    else if (logDate.getTime() === yesterday.getTime()) { return `Kecha, ${timeString}`; }
+    else { return `${date.getDate()}-${["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"][date.getMonth()]}, ${timeString}`; }
 }
 
 function renderLogs() {
@@ -443,16 +364,14 @@ function renderLogs() {
     logs.forEach((item, index) => {
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
-        const displayTime = formatLogTime(item);
-
         logItem.innerHTML = `
             <div class="log-left">
                 <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
                 <div class="log-reason">${item.reason}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="log-time">${displayTime}</div>
-                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;" title="Tarixdan o'chirish">×</button>
+                <div class="log-time">${formatLogTime(item)}</div>
+                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;">×</button>
             </div>
         `;
         logsContainer.appendChild(logItem);
@@ -461,11 +380,7 @@ function renderLogs() {
 
 window.deleteLog = function (index) {
     askPassword(() => {
-        if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
-            logs.splice(index, 1);
-            saveData();
-            renderLogs();
-        }
+        if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) { logs.splice(index, 1); saveData(); renderLogs(); }
     });
 };
 
@@ -478,12 +393,9 @@ function renderUI() {
     const scores = participants.map(p => p.score);
     const maxScore = Math.max(...scores);
 
-    let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
-    document.getElementById('stat-total-lost').innerText = totalLost;
-
+    document.getElementById('stat-total-lost').innerText = participants.reduce((sum, p) => sum + (15 - p.score), 0);
     let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
-
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
@@ -495,31 +407,20 @@ function renderUI() {
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
 
         let statusHtml = '';
-        if (p.score <= 0) {
-            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz! 💀</div>`;
-        } else if (isGameOver) {
-            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`;
-        } else {
-            statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`;
-        }
+        if (p.score <= 0) { statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz! 💀</div>`; }
+        else if (isGameOver) { statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`; }
+        else { statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`; }
 
-        // Qalqonlar bor bo'lsa vizual ravishda 🛡️ belgilarini chiqarish
-        const shieldCount = p.shields || 0;
-        const shieldDisplay = shieldCount > 0 ? `<div class="shield-box">🛡️ x${shieldCount}</div>` : '';
+        const shieldDisplay = p.shields > 0 ? `<div class="shield-box">🛡️ x${p.shields}</div>` : '';
 
         card.innerHTML = `
             <span class="crown-icon">👑</span>
             ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            
             <div id="shield-alert-${p.id}" class="shield-alert-text" style="display: none;"></div>
-
             <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
-                ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} 
-                onclick="subtract(${p.id})">
-                <span>×</span>
-            </button>
+                ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} onclick="subtract(${p.id})"><span>×</span></button>
             ${statusHtml}
         `;
         grid.appendChild(card);
@@ -528,21 +429,17 @@ function renderUI() {
 
 function formatTime(ms) {
     const totalSec = Math.floor(ms / 1000);
-    const min = Math.floor(totalSec / 60);
-    const sec = totalSec % 60;
-    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    return `${Math.floor(totalSec / 60)}:${(totalSec % 60) < 10 ? '0' : ''}${totalSec % 60}`;
 }
 
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        const now = Date.now();
-        const timeLeft = endTime - now;
+        const timeLeft = endTime - Date.now();
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerDisplay.innerText = "00:00:00:00";
-            showRefreshUI();
-            renderUI();
+            showRefreshUI(); renderUI();
         } else {
             const d = Math.floor(timeLeft / 86400000);
             const h = Math.floor((timeLeft % 86400000) / 3600000);
@@ -553,58 +450,38 @@ function startTimer() {
     }, 1000);
 }
 
-// Sekundlik umumiy tekshiruv va avtomatik yangilanishlar
 setInterval(() => {
     const now = Date.now();
     let shartliYangilash = false;
-
-    // Har soatda qalqonlarni vaqtini tekshirish
     updateShieldsAuto();
 
     participants.forEach(p => {
         if (p.nextAllowedTime) {
-            if (now < p.nextAllowedTime) {
-                shartliYangilash = true;
-            } else {
-                p.nextAllowedTime = null;
-                shartliYangilash = true;
-                saveData();
-            }
+            if (now < p.nextAllowedTime) { shartliYangilash = true; }
+            else { p.nextAllowedTime = null; shartliYangilash = true; saveData(); }
         }
     });
-
-    if (shartliYangilash && (!endTime || now < endTime)) {
-        renderUI();
-    }
+    if (shartliYangilash && (!endTime || now < endTime)) { renderUI(); }
 }, 1000);
 
-function showRefreshUI() {
-    if (refreshBtn) refreshBtn.style.display = 'inline-block';
-    if (startBtn) startBtn.style.display = 'none';
-}
+function showRefreshUI() { if (refreshBtn) refreshBtn.style.display = 'inline-block'; if (startBtn) startBtn.style.display = 'none'; }
 
 if (startBtn) {
     startBtn.onclick = () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
-            // Boshlanganda qalqon vaqtini ham biriktiramiz
-            participants.forEach(p => {
-                p.lastShieldUpdate = Date.now();
-                p.shields = 0;
-            });
-            saveData();
-            loadData();
+            participants.forEach(p => { p.lastShieldUpdate = Date.now(); p.shields = 1; });
+            saveData(); loadData();
         }
     };
 }
 
 if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 
 const closeBtn = document.querySelector(".close-modal");
 if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
-// Sayt ochilganda ma'lumotlarni yuklash
 loadData();
