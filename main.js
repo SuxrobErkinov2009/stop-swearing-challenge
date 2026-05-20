@@ -20,7 +20,7 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari (Mashq bajarmaslik o'rniga Qalqon qaytarildi va 4 ta sektorga moslandi)
+// Omad g'ildiragi shartlari (4 ta teng sektor: har biri 90 gradusdan)
 const WHEEL_OPTIONS = [
     { text: "Siz omadlisiz 😍", minDeg: 0, maxDeg: 90, type: "lucky" },
     { text: "2X jazo ehh 💀", minDeg: 91, maxDeg: 180, type: "double" },
@@ -94,6 +94,7 @@ function loadData() {
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : [],
+            // Agar xotirada hech narsa bo'lmasa qat'iy 0 qilinadi
             shields: (p.shields !== undefined && p.shields !== null) ? p.shields : 0,
             lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
@@ -116,14 +117,14 @@ function loadData() {
     renderMoney();
 }
 
-// Qalqonlarni har 48 soatda avomatik yangilash logikasi
+// Qalqonlarni har 48 soatda avtomatik tekshirib yangilash
 function updateShieldsAuto() {
     if (!endTime) return;
     const now = Date.now();
     participants.forEach(p => {
         if (!p.lastShieldUpdate) { p.lastShieldUpdate = endTime - CHALLENGE_DURATION; }
         const diff = now - p.lastShieldUpdate;
-        const hours48 = 48 * 60 * 60 * 1000; // 48 soat taymerga o'zgartirildi
+        const hours48 = 48 * 60 * 60 * 1000;
         if (diff >= hours48) {
             const count = Math.floor(diff / hours48);
             p.shields += count;
@@ -149,7 +150,7 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar himoya qalqoni mavjud bo'lsa, u ishlab ketadi va g'ildirak ochilmaydi
+        // Agar qalqoni bo'lsa, u ishlab ketadi va g'ildirak modal oynasi ochilmaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
@@ -234,12 +235,11 @@ function executeWheelResult(option) {
         saveData(); renderUI(); renderLogs(); return;
     }
 
-    // G'ildirakda qalqon tushgandagi logika
     if (option.type === "shield_reward") {
         p.shields++;
         logs.unshift({ name: p.name, remainingScore: p.score, reason: "🛡️ Omad g'ildiragidan 1 ta zaxira Himoya Qalqoni yutib oldi!", timestamp: Date.now() });
         p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
-        alert(`${p.name} zaxira qalqon yutib oldi! Keyingi safar jazo to'g'ridan-to'g'ri qaytariladi.`);
+        alert(`${p.name} zaxira qalqon yutib oldi! Karta fonida qalqon belgisi faollashdi.`);
         saveData(); renderUI(); renderLogs(); return;
     }
 
@@ -392,7 +392,6 @@ window.deleteLog = function (index) {
     });
 };
 
-// Karta interfeysidan qalqon belgisi to'liq olib tashlandi
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
@@ -420,10 +419,12 @@ function renderUI() {
         else if (isGameOver) { statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`; }
         else { statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`; }
 
-        // Sening so'roving bo'yicha card ichidan shield nishoni olib tashlandi.
+        // Agar qalqon soni 0 dan katta bo'lsagina kartada chiqadi, aks holda butunlay yo'q
+        const shieldDisplay = p.shields > 0 ? `<div class="shield-box">🛡️ x${p.shields}</div>` : '';
 
         card.innerHTML = `
             <span class="crown-icon">👑</span>
+            ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
             <div id="shield-alert-${p.id}" class="shield-alert-text" style="display: none;"></div>
@@ -480,7 +481,7 @@ if (startBtn) {
             endTime = Date.now() + CHALLENGE_DURATION;
             participants.forEach(p => {
                 p.lastShieldUpdate = Date.now();
-                p.shields = 0; // Yangi o'yinda ham hamma 0 ta qalqon bilan boshlaydi
+                p.shields = 0; // O'yin boshlanganda ham barchada qat'iy 0 ta qalqon bo'ladi
             });
             saveData(); loadData();
         }
