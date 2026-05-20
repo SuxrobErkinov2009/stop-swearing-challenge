@@ -12,7 +12,7 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 3 * 60 * 1000;
+const COOLDOWN_TIME = 5 * 1000;
 
 const EXERCISE_POOL = [
     "30ta anjimaniya 💪",
