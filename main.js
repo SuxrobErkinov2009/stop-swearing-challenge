@@ -1,3 +1,20 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCu5I_oC72GImHAq7nv5NOb8nvdQm0kV_c",
+    authDomain: "challenge-4a52a.firebaseapp.com",
+    databaseURL: "https://challenge-4a52a-default-rtdb.firebaseio.com",
+    projectId: "challenge-4a52a",
+    storageBucket: "challenge-4a52a.appspot.com",
+    messagingSenderId: "731273715252",
+    appId: "1:731273715252:web:2a23a82a48994391263461",
+    measurementId: "G-8T1DYQ65SS"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 let participants = [
     { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
     { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
@@ -12,7 +29,7 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 5 * 1000;
+const COOLDOWN_TIME = 3 * 60 * 1000;
 
 const EXERCISE_POOL = [
     "30ta anjimaniya 💪",
@@ -68,32 +85,42 @@ cancelPasswordBtn.onclick = function () {
 };
 
 function saveData() {
-    const data = { participants, endTime, logs };
-    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
+    set(ref(db, 'challenge_data'), {
+        participants,
+        endTime,
+        logs
+    });
 }
 
 function loadData() {
-    const local = localStorage.getItem('swearing_challenge_backup');
-    if (local) {
-        const parsed = JSON.parse(local);
-        participants = parsed.participants.map(p => ({
-            ...p,
-            exercises: p.exercises !== undefined ? p.exercises : []
-        }));
-        endTime = parsed.endTime;
-        logs = parsed.logs || [];
-    }
-    if (endTime) {
-        if (Date.now() < endTime) {
-            if (startBtn) startBtn.style.display = 'none';
-            startTimer();
+    const dataRef = ref(db, 'challenge_data');
+    onValue(dataRef, (snapshot) => {
+        const parsed = snapshot.val();
+        if (parsed) {
+            if (parsed.participants) {
+                participants = parsed.participants.map(p => ({
+                    ...p,
+                    exercises: p.exercises !== undefined ? p.exercises : []
+                }));
+            }
+            endTime = parsed.endTime || null;
+            logs = parsed.logs || [];
+
+            if (endTime) {
+                if (Date.now() < endTime) {
+                    if (startBtn) startBtn.style.display = 'none';
+                    startTimer();
+                } else {
+                    showRefreshUI();
+                }
+            }
+            renderUI();
+            renderLogs();
+            renderMoney();
         } else {
-            showRefreshUI();
+            saveData();
         }
-    }
-    renderUI();
-    renderLogs();
-    renderMoney();
+    });
 }
 
 function triggerFlashEffect() {
@@ -163,9 +190,6 @@ submitReasonBtn.onclick = function () {
         }
 
         saveData();
-        renderUI();
-        renderLogs();
-        renderMoney();
 
         const scoreEl = document.getElementById(`score-${id}`);
         if (scoreEl) {
@@ -187,7 +211,6 @@ window.payFine = function (id, exerciseIndex) {
         if (confirm(`Ushbu mashq bajarildimi? Ro'yxatdan o'chiramizmi?`)) {
             p.exercises.splice(exerciseIndex, 1);
             saveData();
-            renderMoney();
         }
     });
 };
@@ -204,7 +227,7 @@ function renderMoney() {
         row.style.padding = '15px';
 
         let exercisesHtml = '';
-        if (p.exercises.length === 0) {
+        if (!p.exercises || p.exercises.length === 0) {
             exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
         } else {
             p.exercises.forEach((ex, idx) => {
@@ -286,7 +309,6 @@ window.deleteLog = function (index) {
         if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
             logs.splice(index, 1);
             saveData();
-            renderLogs();
         }
     });
 };
@@ -398,13 +420,12 @@ if (startBtn) {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
             saveData();
-            loadData();
         }
     };
 }
 
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar onlayn saqlandi!"); };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { set(ref(db, 'challenge_data'), null).then(() => location.reload()); } };
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 
 const closeBtn = document.querySelector(".close-modal");
