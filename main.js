@@ -139,13 +139,11 @@ submitReasonBtn.onclick = function () {
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
-        const currentHour = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
-
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
             reason: reasonText,
-            time: currentHour
+            timestamp: now
         });
 
         reasonModal.style.display = "none";
@@ -229,6 +227,32 @@ function renderMoney() {
     });
 }
 
+function formatLogTime(item) {
+    if (!item.timestamp && !item.time) return "Noma'lum vaqt";
+
+    const date = item.timestamp ? new Date(item.timestamp) : new Date();
+    const now = new Date();
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const logDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    const timeString = item.timestamp
+        ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+        : item.time;
+
+    if (logDate.getTime() === today.getTime() || !item.timestamp) {
+        return `Bugun, ${timeString}`;
+    } else if (logDate.getTime() === yesterday.getTime()) {
+        return `Kecha, ${timeString}`;
+    } else {
+        const day = date.getDate();
+        const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+        const monthName = months[date.getMonth()];
+        return `${day}-${monthName}, ${timeString}`;
+    }
+}
+
 function renderLogs() {
     if (!logsContainer) return;
     if (logs.length === 0) {
@@ -240,13 +264,16 @@ function renderLogs() {
     logs.forEach((item, index) => {
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
+
+        const displayTime = formatLogTime(item);
+
         logItem.innerHTML = `
             <div class="log-left">
                 <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
                 <div class="log-reason">🚨 Sabab: ${item.reason}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="log-time">Bugun, ${item.time}</div>
+                <div class="log-time">${displayTime}</div>
                 <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;" title="Tarixdan o'chirish">×</button>
             </div>
         `;
