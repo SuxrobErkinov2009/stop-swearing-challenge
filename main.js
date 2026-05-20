@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, penaltyMoney: 0, nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, penaltyMoney: 0, nextAllowedTime: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null }
 ];
 
 let logs = [];
@@ -12,7 +12,13 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME =  3 * 60 * 1000;
+const COOLDOWN_TIME = 3 * 60 * 1000;
+
+const EXERCISE_POOL = [
+    "30ta anjimaniya 💪",
+    "100 ta o'tirib turish 🏃‍♂️",
+    "50 ta pres kachat 🏋️‍♂️"
+];
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -36,9 +42,7 @@ const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 
-// "8590091117" paroli uchun xavfsiz va aniq tekshiruv (Base64 shifrlash)
 function verifySecureKey(input) {
-    // "ODU5MDA5MTExNw==" bu "8590091117" matnining shifrlangan holati
     return btoa(input) === "ODU5MDA5MTExNw==";
 }
 
@@ -74,7 +78,7 @@ function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants.map(p => ({
             ...p,
-            penaltyMoney: p.penaltyMoney !== undefined ? p.penaltyMoney : 0
+            exercises: p.exercises !== undefined ? p.exercises : []
         }));
         endTime = parsed.endTime;
         logs = parsed.logs || [];
@@ -129,7 +133,10 @@ submitReasonBtn.onclick = function () {
 
     if (p) {
         p.score--;
-        p.penaltyMoney += 2000;
+
+        const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
+        p.exercises.push(randomExercise);
+
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
         const currentHour = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
@@ -174,14 +181,13 @@ cancelReasonBtn.onclick = function () {
     reasonModal.style.display = "none";
 };
 
-window.payFine = function (id) {
+window.payFine = function (id, exerciseIndex) {
     const p = participants.find(x => x.id === id);
-    if (!p || p.penaltyMoney <= 0) return;
+    if (!p || !p.exercises || p.exercises.length === 0) return;
 
     askPassword(() => {
-        if (confirm(`${p.name} 2 000 so'm jarima to'ladi, hisobdan kamaytiramizmi?`)) {
-            p.penaltyMoney -= 2000;
-            if (p.penaltyMoney < 0) p.penaltyMoney = 0;
+        if (confirm(`Ushbu mashq bajarildimi? Ro'yxatdan o'chiramizmi?`)) {
+            p.exercises.splice(exerciseIndex, 1);
             saveData();
             renderMoney();
         }
@@ -194,11 +200,29 @@ function renderMoney() {
     participants.forEach(p => {
         const row = document.createElement('div');
         row.className = 'money-row';
+        row.style.flexDirection = 'column';
+        row.style.alignItems = 'flex-start';
+        row.style.gap = '10px';
+        row.style.padding = '15px';
+
+        let exercisesHtml = '';
+        if (p.exercises.length === 0) {
+            exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
+        } else {
+            p.exercises.forEach((ex, idx) => {
+                exercisesHtml += `
+                    <div class="money-right" style="width: 100%; justify-content: space-between; margin-bottom: 5px;">
+                        <div class="money-val" style="font-size: 15px;">🏃 Majburiyat: ${ex}</div>
+                        <button class="pay-btn" onclick="payFine(${p.id}, ${idx})">Bajarildi</button>
+                    </div>
+                `;
+            });
+        }
+
         row.innerHTML = `
-            <div class="money-name">${p.name}</div>
-            <div class="money-right">
-                <div class="money-val">${p.penaltyMoney.toLocaleString('uz-UZ')} so'm</div>
-                <button class="pay-btn" onclick="payFine(${p.id})" ${p.penaltyMoney <= 0 ? 'style="display:none;"' : ''}>To'lash</button>
+            <div class="money-name" style="font-weight: bold; border-bottom: 1px solid #333; width: 100%; padding-bottom: 5px; color: #fff;">${p.name}</div>
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 5px;">
+                ${exercisesHtml}
             </div>
         `;
         moneyContainer.appendChild(row);
@@ -361,4 +385,3 @@ if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
-
