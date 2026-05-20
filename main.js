@@ -20,12 +20,13 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari (4 ta teng sektor: har biri 90 gradusdan)
+// Omad g'ildiragi shartlari (5 ta teng sektorga moslandi, har biri 72 gradusdan)
 const WHEEL_OPTIONS = [
-    { text: "Siz omadlisiz 😍", minDeg: 0, maxDeg: 90, type: "lucky" },
-    { text: "2X jazo ehh 💀", minDeg: 91, maxDeg: 180, type: "double" },
-    { text: "Hech narsa 🤐", minDeg: 181, maxDeg: 270, type: "nothing" },
-    { text: "Qalqon yutdingiz 🛡️", minDeg: 271, maxDeg: 360, type: "shield_reward" }
+    { text: "Siz omadlisiz 😍 (Ball qo'shilmadi)", minDeg: 0, maxDeg: 72, type: "lucky_no_score" },
+    { text: "2X jazo ehh 💀", minDeg: 73, maxDeg: 144, type: "double" },
+    { text: "Hech narsa 🤐", minDeg: 145, maxDeg: 216, type: "nothing" },
+    { text: "Qalqon yutdingiz 🛡️", minDeg: 217, maxDeg: 288, type: "shield_reward" },
+    { text: "2x minus ball 💀💀", minDeg: 289, maxDeg: 360, type: "double_minus" }
 ];
 
 let isSpinning = false;
@@ -94,7 +95,6 @@ function loadData() {
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : [],
-            // Agar xotirada hech narsa bo'lmasa qat'iy 0 qilinadi
             shields: (p.shields !== undefined && p.shields !== null) ? p.shields : 0,
             lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
@@ -117,7 +117,6 @@ function loadData() {
     renderMoney();
 }
 
-// Qalqonlarni har 48 soatda avtomatik tekshirib yangilash
 function updateShieldsAuto() {
     if (!endTime) return;
     const now = Date.now();
@@ -150,7 +149,6 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar qalqoni bo'lsa, u ishlab ketadi va g'ildirak modal oynasi ochilmaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
@@ -223,15 +221,16 @@ function executeWheelResult(option) {
     const p = participants.find(x => x.id === activeParticipantId);
     if (!p) return;
 
-    if (option.type === "lucky") {
-        if (p.score >= 15) {
-            alert(`${p.name}da ball maksimal holatda!`);
-            logs.unshift({ name: p.name, remainingScore: p.score, reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin ball 15 bo'lgani uchun o'zgarmadi.", timestamp: Date.now() });
-        } else {
-            p.score++;
-            logs.unshift({ name: p.name, remainingScore: p.score, reason: "🍀 Omad g'ildiragida +1 ball mukofot yutib oldi!", timestamp: Date.now() });
-        }
+    // "Siz omadlisiz" tushganda ball qo'shish qismi olib tashlandi, shunchaki log yoziladi
+    if (option.type === "lucky_no_score") {
+        logs.unshift({
+            name: p.name,
+            remainingScore: p.score,
+            reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin bu safar ball qo'shilmadi.",
+            timestamp: Date.now()
+        });
         p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+        alert(`${p.name}, siz shunchaki omadlisiz! Ballingiz o'zgarmadi.`);
         saveData(); renderUI(); renderLogs(); return;
     }
 
@@ -257,14 +256,35 @@ submitReasonBtn.onclick = function () {
     const now = Date.now();
 
     if (p) {
-        p.score--;
-        const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
         let logActionPrefix = "🚨 Sabab";
 
-        if (currentWheelModifier === "double") {
+        // YANGI SHART: 2x minus ball tushgandagi logika (-2 ball va 2 ta mashq)
+        if (currentWheelModifier === "double_minus") {
+            p.score -= 2;
+            if (p.score < 0) p.score = 0; // Ball minusga o'tib ketmasligi uchun
+
+            const ex1 = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
+            let ex2 = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
+            // Ikkala mashq bir xil bo'lib qolmasligi uchun kichik tekshiruv
+            if (ex1 === ex2) { ex2 = EXERCISE_POOL[(EXERCISE_POOL.indexOf(ex1) + 1) % EXERCISE_POOL.length]; }
+
+            p.exercises.push(ex1);
+            p.exercises.push(ex2);
+            logActionPrefix = "💀💀 [2X MINUS BALL] Sabab";
+        }
+        // 2X jazo logikasi (normal holatda -1 ball, lekin mashq 2 barobar)
+        else if (currentWheelModifier === "double") {
+            p.score--;
+            if (p.score < 0) p.score = 0;
+            const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
             p.exercises.push(`2X ${randomExercise}`);
             logActionPrefix = "💀 [2X JAZO] Sabab";
-        } else {
+        }
+        // Standart jarima logikasi (-1 ball va 1 ta mashq)
+        else {
+            p.score--;
+            if (p.score < 0) p.score = 0;
+            const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
             p.exercises.push(randomExercise);
         }
 
@@ -419,7 +439,6 @@ function renderUI() {
         else if (isGameOver) { statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`; }
         else { statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`; }
 
-        // Agar qalqon soni 0 dan katta bo'lsagina kartada chiqadi, aks holda butunlay yo'q
         const shieldDisplay = p.shields > 0 ? `<div class="shield-box">🛡️ x${p.shields}</div>` : '';
 
         card.innerHTML = `
@@ -481,7 +500,7 @@ if (startBtn) {
             endTime = Date.now() + CHALLENGE_DURATION;
             participants.forEach(p => {
                 p.lastShieldUpdate = Date.now();
-                p.shields = 0; // O'yin boshlanganda ham barchada qat'iy 0 ta qalqon bo'ladi
+                p.shields = 0;
             });
             saveData(); loadData();
         }
