@@ -20,12 +20,12 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari (Qalqon olib tashlandi, 4 ta sektorga moslandi)
+// Omad g'ildiragi shartlari (4 ta teng sektorga to'g'rilandi: har biri 90 gradusdan)
 const WHEEL_OPTIONS = [
-    { text: "Siz omadlisiz 😍", minDeg: 1, maxDeg: 90, type: "lucky" },
+    { text: "Siz omadlisiz 😍", minDeg: 0, maxDeg: 90, type: "lucky" },
     { text: "2X jazo ehh 💀", minDeg: 91, maxDeg: 180, type: "double" },
     { text: "Hech narsa 🤐", minDeg: 181, maxDeg: 270, type: "nothing" },
-    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 271, maxDeg: 359, type: "no_exercise" }
+    { text: "Mashq bajarmaslik 🧘‍♂️", minDeg: 271, maxDeg: 360, type: "no_exercise" }
 ];
 
 let isSpinning = false;
@@ -94,7 +94,8 @@ function loadData() {
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : [],
-            shields: p.shields !== undefined ? p.shields : 1,
+            // Agar localstorage'da qalqon qiymati noto'g'ri bo'lsa yoki nol bo'lsa, kamida 1 ta beradi
+            shields: (p.shields !== undefined && p.shields !== null) ? p.shields : 1,
             lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
         endTime = parsed.endTime;
@@ -148,7 +149,7 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar himoya qalqoni mavjud bo'lsa, to'g'ridan-to'g'ri qalqon ishlaydi
+        // Agar himoya qalqoni mavjud bo'lsa, birinchi bo'lib qalqon ishlaydi va g'ildirak ochilmaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
@@ -201,10 +202,11 @@ spinBtn.onclick = function () {
 
     setTimeout(() => {
         isSpinning = false;
+        // Pointer tepada bo'lgani bois burchakni teskari o'qish logikasi
         const normalizedDegree = (360 - (randomDegree % 360)) % 360;
 
         let targetOption = WHEEL_OPTIONS.find(opt => normalizedDegree >= opt.minDeg && normalizedDegree <= opt.maxDeg);
-        if (!targetOption) targetOption = WHEEL_OPTIONS[2];
+        if (!targetOption) targetOption = WHEEL_OPTIONS[2]; // Xatolik oldini olish uchun "Hech narsa" bo'limi
 
         wheelResult.innerText = `Natija: ${targetOption.text}`;
         currentWheelModifier = targetOption.type;
@@ -470,7 +472,10 @@ if (startBtn) {
     startBtn.onclick = () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
-            participants.forEach(p => { p.lastShieldUpdate = Date.now(); p.shields = 1; });
+            participants.forEach(p => {
+                p.lastShieldUpdate = Date.now();
+                p.shields = 1; // Start bosilganda barchaga 1 tadan qalqon beriladi
+            });
             saveData(); loadData();
         }
     };
