@@ -1,41 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCu5I_oC72GImHAq7nv5NOb8nvdQm0kV_c",
-    authDomain: "challenge-4a52a.firebaseapp.com",
-    databaseURL: "https://challenge-4a52a-default-rtdb.firebaseio.com",
-    projectId: "challenge-4a52a",
-    storageBucket: "challenge-4a52a.appspot.com",
-    messagingSenderId: "731273715252",
-    appId: "1:731273715252:web:2a23a82a48994391263461",
-    measurementId: "G-8T1DYQ65SS"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Sening skrinshotdagi o'sha qadrli ma'lumotlaring
-const BACKUP_PARTICIPANTS = [
+let participants = [
     { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 14, exercises: [], nextAllowedTime: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
     { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 11, exercises: [], nextAllowedTime: null }
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null }
 ];
 
-const BACKUP_LOGS = [
-    { name: "Ansor G'ulomov", remainingScore: 11, reason: "shunchaki", timestamp: Date.now() - 3600000 },
-    { name: "Ansor G'ulomov", remainingScore: 12, reason: "Bilmasdan sokinib yubordi", timestamp: Date.now() - 7200000 },
-    { name: "Ansor G'ulomov", remainingScore: 13, reason: "Asabiylik", timestamp: Date.now() - 14400000 },
-    { name: "Ansor G'ulomov", remainingScore: 14, reason: "Qoidabuzarlik", timestamp: Date.now() - 28800000 },
-    { name: "Jonibek Sulaymonov", remainingScore: 14, reason: "Ehtiyotsizlik", timestamp: Date.now() - 43200000 }
-];
-
-// 4 kun 9 soat vaqtni millisekundlarda hisoblaymiz (04:09:54:07 uchun)
-const TIME_TO_ADD = (4 * 24 * 60 * 60 * 1000) + (9 * 60 * 60 * 1000) + (54 * 60 * 1000);
-const BACKUP_END_TIME = Date.now() + TIME_TO_ADD;
-
-let participants = [];
 let logs = [];
 let activeParticipantId = null;
 let securityCallback = null;
@@ -43,7 +12,7 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 3 * 60 * 1000;
+const COOLDOWN_TIME = 5 * 1000;
 
 const EXERCISE_POOL = [
     "30ta anjimaniya 💪",
@@ -51,7 +20,6 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// DOM elementlar (xatolikka yo'l qo'ymaslik uchun hammasini tekshirib olamiz)
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
 const startBtn = document.getElementById('startTimerBtn');
@@ -79,79 +47,53 @@ function verifySecureKey(input) {
 }
 
 function askPassword(onSuccess) {
-    if (!passwordModal || !adminPasswordInput) {
-        // Agar parol modal oynasi HTMLda bo'lmasa, chetlab o'tib funksiyani bajaraveradi
-        onSuccess();
-        return;
-    }
     adminPasswordInput.value = '';
     passwordModal.style.display = "flex";
     adminPasswordInput.focus();
     securityCallback = onSuccess;
 }
 
-if (submitPasswordBtn) {
-    submitPasswordBtn.onclick = function () {
-        if (verifySecureKey(adminPasswordInput.value)) {
-            passwordModal.style.display = "none";
-            if (securityCallback) securityCallback();
-        } else {
-            alert("Noto'g'ri parol! Ruxsat berilmadi.");
-            passwordModal.style.display = "none";
-        }
-    };
-}
-
-if (cancelPasswordBtn) {
-    cancelPasswordBtn.onclick = function () {
+submitPasswordBtn.onclick = function () {
+    if (verifySecureKey(adminPasswordInput.value)) {
         passwordModal.style.display = "none";
-    };
-}
+        if (securityCallback) securityCallback();
+    } else {
+        alert("Noto'g'ri parol! Ruxsat berilmadi.");
+        passwordModal.style.display = "none";
+    }
+};
+
+cancelPasswordBtn.onclick = function () {
+    passwordModal.style.display = "none";
+};
 
 function saveData() {
-    set(ref(db, 'challenge_data'), {
-        participants,
-        endTime,
-        logs
-    }).catch(err => console.error("Firebasega yozishda xato: ", err));
+    const data = { participants, endTime, logs };
+    localStorage.setItem('swearing_challenge_backup', JSON.stringify(data));
 }
 
 function loadData() {
-    const dataRef = ref(db, 'challenge_data');
-    onValue(dataRef, (snapshot) => {
-        const parsed = snapshot.val();
-
-        // Agar onlayn baza bo'sh bo'lsa, avtomat sening ma'lumotlaringni onlayn bazaga yuklaydi
-        if (!parsed || !parsed.participants || parsed.participants.length === 0) {
-            participants = [...BACKUP_PARTICIPANTS];
-            logs = [...BACKUP_LOGS];
-            endTime = BACKUP_END_TIME;
-            saveData();
-            return;
-        }
-
+    const local = localStorage.getItem('swearing_challenge_backup');
+    if (local) {
+        const parsed = JSON.parse(local);
         participants = parsed.participants.map(p => ({
             ...p,
             exercises: p.exercises !== undefined ? p.exercises : []
         }));
-        endTime = parsed.endTime || null;
+        endTime = parsed.endTime;
         logs = parsed.logs || [];
-
-        if (endTime) {
-            if (Date.now() < endTime) {
-                if (startBtn) startBtn.style.display = 'none';
-                startTimer();
-            } else {
-                showRefreshUI();
-            }
+    }
+    if (endTime) {
+        if (Date.now() < endTime) {
+            if (startBtn) startBtn.style.display = 'none';
+            startTimer();
+        } else {
+            showRefreshUI();
         }
-
-        renderUI();
-        renderLogs();
-        renderMoney();
-    }, (error) => {
-        console.error("Firebase o'qishda xatolik:", error);
-    });
+    }
+    renderUI();
+    renderLogs();
+    renderMoney();
 }
 
 function triggerFlashEffect() {
@@ -171,70 +113,71 @@ window.subtract = function (id) {
 
     askPassword(() => {
         activeParticipantId = id;
-        if (reasonTargetText) reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
-        if (reasonInput) {
-            reasonInput.value = '';
-            reasonInput.focus();
-        }
-        if (reasonModal) reasonModal.style.display = "flex";
+        reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
+        reasonInput.value = '';
+        reasonModal.style.display = "flex";
+        reasonInput.focus();
     });
 };
 
-if (submitReasonBtn) {
-    submitReasonBtn.onclick = function () {
-        const reasonText = reasonInput ? reasonInput.value.trim() : "Qoidabuzarlik";
-        if (!reasonText && reasonInput) {
-            alert("Iltimos, sababni kiriting!");
-            return;
-        }
+submitReasonBtn.onclick = function () {
+    const reasonText = reasonInput.value.trim();
+    if (!reasonText) {
+        alert("Iltimos, sababni kiriting!");
+        return;
+    }
 
-        const id = activeParticipantId;
-        const p = participants.find(x => x.id === id);
-        const now = Date.now();
+    const id = activeParticipantId;
+    const p = participants.find(x => x.id === id);
+    const now = Date.now();
 
-        if (p) {
-            p.score--;
+    if (p) {
+        p.score--;
 
-            const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-            p.exercises.push(randomExercise);
+        const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
+        p.exercises.push(randomExercise);
 
-            p.nextAllowedTime = now + COOLDOWN_TIME;
+        p.nextAllowedTime = now + COOLDOWN_TIME;
 
-            logs.unshift({
-                name: p.name,
-                remainingScore: p.score,
-                reason: reasonText,
-                timestamp: now
-            });
+        logs.unshift({
+            name: p.name,
+            remainingScore: p.score,
+            reason: reasonText,
+            timestamp: now
+        });
 
-            if (reasonModal) reasonModal.style.display = "none";
-            triggerFlashEffect();
-
-            try {
-                if (p.score === 0) {
-                    new Audio('./ovozlar/gameover.MP3').play();
-                } else {
-                    new Audio('./ovozlar/error.MP3').play();
-                    setTimeout(() => { new Audio('./ovozlar/lock.MP3').play(); }, 1000);
-                }
-            } catch (e) { console.log("Audio xatolik e'tibor bermang"); }
-
-            saveData();
-
-            const scoreEl = document.getElementById(`score-${id}`);
-            if (scoreEl) {
-                scoreEl.classList.add('score-change');
-                setTimeout(() => scoreEl.classList.remove('score-change'), 500);
-            }
-        }
-    };
-}
-
-if (cancelReasonBtn) {
-    cancelReasonBtn.onclick = function () {
         reasonModal.style.display = "none";
-    };
-}
+        triggerFlashEffect();
+
+        if (p.score === 0) {
+            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
+            gameOverAudio.play();
+        } else {
+            const errorAudio = new Audio('./ovozlar/error.MP3');
+            errorAudio.play();
+
+            setTimeout(() => {
+                const lockAudio = new Audio('./ovozlar/lock.MP3');
+                lockAudio.play();
+            }, 1000);
+        }
+
+        saveData();
+        renderUI();
+        renderLogs();
+        renderMoney();
+
+        const scoreEl = document.getElementById(`score-${id}`);
+        if (scoreEl) {
+            scoreEl.classList.add('score-change');
+            setTimeout(() => scoreEl.classList.remove('score-change'), 500);
+        }
+    }
+};
+
+cancelReasonBtn.onclick = function () {
+    reasonModal.style.display = "none";
+};
 
 window.payFine = function (id, exerciseIndex) {
     const p = participants.find(x => x.id === id);
@@ -244,6 +187,7 @@ window.payFine = function (id, exerciseIndex) {
         if (confirm(`Ushbu mashq bajarildimi? Ro'yxatdan o'chiramizmi?`)) {
             p.exercises.splice(exerciseIndex, 1);
             saveData();
+            renderMoney();
         }
     });
 };
@@ -260,7 +204,7 @@ function renderMoney() {
         row.style.padding = '15px';
 
         let exercisesHtml = '';
-        if (!p.exercises || p.exercises.length === 0) {
+        if (p.exercises.length === 0) {
             exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
         } else {
             p.exercises.forEach((ex, idx) => {
@@ -284,9 +228,29 @@ function renderMoney() {
 }
 
 function formatLogTime(item) {
-    if (!item.timestamp) return "Hozirgina";
-    const date = new Date(item.timestamp);
-    return date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    if (!item.timestamp && !item.time) return "Noma'lum vaqt";
+
+    const date = item.timestamp ? new Date(item.timestamp) : new Date();
+    const now = new Date();
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const logDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    const timeString = item.timestamp
+        ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+        : item.time;
+
+    if (logDate.getTime() === today.getTime() || !item.timestamp) {
+        return `Bugun, ${timeString}`;
+    } else if (logDate.getTime() === yesterday.getTime()) {
+        return `Kecha, ${timeString}`;
+    } else {
+        const day = date.getDate();
+        const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+        const monthName = months[date.getMonth()];
+        return `${day}-${monthName}, ${timeString}`;
+    }
 }
 
 function renderLogs() {
@@ -309,8 +273,8 @@ function renderLogs() {
                 <div class="log-reason">🚨 Sabab: ${item.reason}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="log-time">Bugun, ${displayTime}</div>
-                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;">×</button>
+                <div class="log-time">${displayTime}</div>
+                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;" title="Tarixdan o'chirish">×</button>
             </div>
         `;
         logsContainer.appendChild(logItem);
@@ -322,6 +286,7 @@ window.deleteLog = function (index) {
         if (confirm("Ushbu yozuvni tarixdan o'chirmoqchimisiz?")) {
             logs.splice(index, 1);
             saveData();
+            renderLogs();
         }
     });
 };
@@ -336,16 +301,13 @@ function renderUI() {
     const maxScore = Math.max(...scores);
 
     let totalLost = participants.reduce((sum, p) => sum + (15 - p.score), 0);
-    const totalLostEl = document.getElementById('stat-total-lost');
-    if (totalLostEl) totalLostEl.innerText = totalLost;
+    document.getElementById('stat-total-lost').innerText = totalLost;
 
     let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
-    const kingEl = document.getElementById('stat-king');
-    if (kingEl) kingEl.innerText = kings.length > 0 ? kings.join(', ') : "--";
+    document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
 
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
-    const dangerEl = document.getElementById('stat-danger');
-    if (dangerEl) dangerEl.innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
+    document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -356,9 +318,9 @@ function renderUI() {
 
         let statusHtml = '';
         if (p.score <= 0) {
-            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz! 💀</div>`;
+            statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz, sog'ilishga tayyor turing!!! 💀</div>`;
         } else if (isGameOver) {
-            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutuldingiz!!! 🎉</div>`;
+            statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Siz azoblash xizmatidan qutilib qoldingiz!!! 🎉</div>`;
         } else {
             statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`;
         }
@@ -392,7 +354,7 @@ function startTimer() {
         const timeLeft = endTime - now;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            if (timerDisplay) timerDisplay.innerText = "00:00:00:00";
+            timerDisplay.innerText = "00:00:00:00";
             showRefreshUI();
             renderUI();
         } else {
@@ -400,7 +362,7 @@ function startTimer() {
             const h = Math.floor((timeLeft % 86400000) / 3600000);
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
-            if (timerDisplay) timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
     }, 1000);
 }
@@ -433,16 +395,20 @@ function showRefreshUI() {
 
 if (startBtn) {
     startBtn.onclick = () => {
-        endTime = Date.now() + CHALLENGE_DURATION;
-        saveData();
+        if (confirm("6 kunlik challenge boshlansinmi?")) {
+            endTime = Date.now() + CHALLENGE_DURATION;
+            saveData();
+            loadData();
+        }
     };
 }
 
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar onlayn saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Noldan boshlamoqchimisiz?")) { set(ref(db, 'challenge_data'), null).then(() => location.reload()); } };
-if (infoBtn) infoBtn.onclick = () => { if (modal) modal.style.display = "flex"; };
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
+if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham hammasini noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
+if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 
 const closeBtn = document.querySelector(".close-modal");
-if (closeBtn) closeBtn.onclick = () => { if (modal) modal.style.display = "none"; };
+if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
+window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
 loadData();
