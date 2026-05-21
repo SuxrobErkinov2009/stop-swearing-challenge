@@ -1,8 +1,8 @@
 let participants = [
-    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null },
-    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null }
+    { id: 1, name: "Suxrob Erkinov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 2, name: "Jonibek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 3, name: "Otabek Sulaymonov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null },
+    { id: 4, name: "Ansor G'ulomov", score: 15, exercises: [], nextAllowedTime: null, shields: 0, lastShieldUpdate: null }
 ];
 
 let logs = [];
@@ -19,6 +19,35 @@ const EXERCISE_POOL = [
     "100 ta o'tirib turish 🏃‍♂️",
     "50 ta pres kachat 🏋️‍♂️"
 ];
+
+// --- OMAD G'ILDIRAGI SOZLAMALARI (SEN SO'RAGANINGDEK) ---
+// Jami 13 ta narsa, shundan 10 tasi "Hech narsa"
+const WHEEL_OPTIONS = [
+    { text: "Siz omadlisiz 😍", type: "lucky", color: "#2ed573" },
+    { text: "Qalqon yutdingiz 🛡️", type: "shield_reward", color: "#1e90ff" },
+    { text: "2X ball dan maxrum bo'ldingiz 💀", type: "double_minus", color: "#ff4757" },
+    // 10 ta "Hech narsa" sektori
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" }
+];
+
+let isSpinning = false;
+let currentWheelModifier = "nothing";
+
+const wheelModal = document.getElementById("wheelModal");
+const wheelCanvas = document.getElementById("wheelCanvas");
+const wheelResult = document.getElementById("wheelResult");
+const spinBtn = document.getElementById("spinBtn");
+const wheelTargetText = document.getElementById("wheelTargetText");
+// --------------------------------------------------------
 
 const grid = document.getElementById('participants-grid');
 const timerDisplay = document.getElementById('timer-display');
@@ -78,11 +107,16 @@ function loadData() {
         const parsed = JSON.parse(local);
         participants = parsed.participants.map(p => ({
             ...p,
-            exercises: p.exercises !== undefined ? p.exercises : []
+            exercises: p.exercises !== undefined ? p.exercises : [],
+            shields: p.shields !== undefined ? p.shields : 0,
+            lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
         }));
         endTime = parsed.endTime;
         logs = parsed.logs || [];
     }
+
+    updateShieldsAuto();
+
     if (endTime) {
         if (Date.now() < endTime) {
             if (startBtn) startBtn.style.display = 'none';
@@ -94,6 +128,55 @@ function loadData() {
     renderUI();
     renderLogs();
     renderMoney();
+    drawWheel(); // G'ildirakni chizish
+}
+
+// 48 soatda qalqon berish (avvalgi sodir bo'ladigan narsalar saqlangan)
+function updateShieldsAuto() {
+    if (!endTime) return;
+    const now = Date.now();
+    participants.forEach(p => {
+        if (!p.lastShieldUpdate) { p.lastShieldUpdate = endTime - CHALLENGE_DURATION; }
+        const diff = now - p.lastShieldUpdate;
+        const hours48 = 48 * 60 * 60 * 1000;
+        if (diff >= hours48) {
+            const count = Math.floor(diff / hours48);
+            if (p.shields === undefined) p.shields = 0;
+            p.shields += count;
+            p.lastShieldUpdate = p.lastShieldUpdate + (count * hours48);
+        }
+    });
+    saveData();
+}
+
+// G'ildirakni vizual chizish funksiyasi
+function drawWheel() {
+    if (!wheelCanvas) return;
+    const ctx = wheelCanvas.getContext("2d");
+    const numSectors = WHEEL_OPTIONS.length;
+    const arc = (2 * Math.PI) / numSectors;
+    const radius = wheelCanvas.width / 2;
+
+    ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+
+    WHEEL_OPTIONS.forEach((opt, i) => {
+        const angle = i * arc;
+        ctx.fillStyle = opt.color;
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arc);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        ctx.save();
+        ctx.fillStyle = "#fff";
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText(opt.text.substring(0, 16), radius - 15, 5);
+        ctx.restore();
+    });
 }
 
 function triggerFlashEffect() {
@@ -104,6 +187,7 @@ function triggerFlashEffect() {
     }, 150);
 }
 
+// Ball ayirish bosilganda: Parol tekshiriladi, keyin BARABAN chiqadi
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -111,14 +195,89 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
+    // Sening paroling joyida turibdi
     askPassword(() => {
         activeParticipantId = id;
-        reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
-        reasonInput.value = '';
-        reasonModal.style.display = "flex";
-        reasonInput.focus();
+
+        // Agar ishtirokchida qalqon bo'lsa, avtomatik saqlaydi (avvalgi mantiq saqlangan)
+        if (p.shields > 0) {
+            p.shields--;
+            p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+            logs.unshift({
+                name: p.name,
+                remainingScore: p.score,
+                reason: "🛡️ Himoya qalqoni tufayli saqlanib qoldi! Ball ayirilmadi.",
+                timestamp: Date.now()
+            });
+            try { new Audio('./ovozlar/shield.MP3').play(); } catch (e) { }
+            saveData(); renderUI(); renderLogs();
+            return;
+        }
+
+        // Qalqoni bo'lmasa g'ildirak ochiladi
+        wheelTargetText.innerText = `${p.name} uchun Omad G'ildiragi!`;
+        wheelResult.innerText = "G'ildirakni aylantiring... 🎲";
+        wheelCanvas.style.transform = "rotate(0deg)";
+        wheelModal.style.display = "flex";
     });
 };
+
+// RO'PARA-ROSA 6 SEKUND AYLANADIGAN FUNKSIYA
+spinBtn.onclick = function () {
+    if (isSpinning) return;
+    isSpinning = true;
+    wheelResult.innerText = "G'ildirak aylanmoqda... 🎲";
+
+    const numSectors = WHEEL_OPTIONS.length;
+    const sectorSelected = Math.floor(Math.random() * numSectors);
+
+    const sectorArcDeg = 360 / numSectors;
+    const targetDegree = 360 - (sectorSelected * sectorArcDeg) - (sectorArcDeg / 2);
+    const totalRotation = 2880 + targetDegree; // Kamida 8 marta to'liq aylanish
+
+    // Animatsiya vaqti qat'iy 6 sekund (6s) qilindi
+    wheelCanvas.style.transition = "transform 6s cubic-bezier(0.1, 0.8, 0.1, 1)";
+    wheelCanvas.style.transform = `rotate(${totalRotation}deg)`;
+
+    setTimeout(() => {
+        isSpinning = false;
+        let targetOption = WHEEL_OPTIONS[sectorSelected];
+
+        wheelResult.innerText = `Natija: ${targetOption.text}`;
+        currentWheelModifier = targetOption.type;
+
+        setTimeout(() => {
+            wheelModal.style.display = "none";
+            executeWheelResult(targetOption);
+        }, 1200);
+
+    }, 6000); // 6 sekund kutadi
+};
+
+// G'ildirak to'xtagandan keyingi hisob-kitob (Sodir bo'ladigan narsalar)
+function executeWheelResult(option) {
+    const p = participants.find(x => x.id === activeParticipantId);
+    if (!p) return;
+
+    // 1. Siz omadlisiz: ball ayirilmaydi, jazo qo'shilmaydi, faqat tarixga yoziladi
+    if (option.type === "lucky") {
+        logs.unshift({
+            name: p.name,
+            remainingScore: p.score,
+            reason: "🍀 Omad g'ildiragida 'Siz omadlisiz 😍' chiqdi! Ball ham, jazo ham berilmadi.",
+            timestamp: Date.now()
+        });
+        p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
+        saveData(); renderUI(); renderLogs();
+        return;
+    }
+
+    // Qolgan hollarda sabab kiritish oynasi ochiladi va unga qarab vazifalar yuklanadi
+    reasonTargetText.innerText = `${p.name} uchun qoida buzilish sababini yozing [Baraban: ${option.text}]:`;
+    reasonInput.value = '';
+    reasonModal.style.display = "flex";
+    reasonInput.focus();
+}
 
 submitReasonBtn.onclick = function () {
     const reasonText = reasonInput.value.trim();
@@ -132,17 +291,37 @@ submitReasonBtn.onclick = function () {
     const now = Date.now();
 
     if (p) {
-        p.score--;
-
+        let logPrefix = "🚨 Sabab";
         const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-        p.exercises.push(randomExercise);
+
+        // 2. Qalqon yutdingiz: bitta qalqon qo'shadi + jazo (ball ayrilmaydi)
+        if (currentWheelModifier === "shield_reward") {
+            p.shields = (p.shields || 0) + 1;
+            p.exercises.push(randomExercise);
+            logPrefix = "🛡️ [QALQON + JAZO] Sabab";
+        }
+        // 3. 2X ball dan mahrum bo'ldingiz: 2 ta ball ayiriladi + jazo
+        else if (currentWheelModifier === "double_minus") {
+            p.score -= 2;
+            if (p.score < 0) p.score = 0;
+            p.exercises.push(randomExercise);
+            logPrefix = "💀 [2X MINUS BALL] Sabab";
+        }
+        // 4. Hech narsa: odatdagidek 1 ball ayiriladi + jazo
+        else if (currentWheelModifier === "nothing") {
+            p.score--;
+            if (p.score < 0) p.score = 0;
+            p.exercises.push(randomExercise);
+            logPrefix = "🤐 [JARIMA] Sabab";
+        }
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
+        // Hamma narsa tarixga batafsil yoziladi
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
-            reason: reasonText,
+            reason: `${logPrefix}: ${reasonText} (Jazo: ${randomExercise})`,
             timestamp: now
         });
 
@@ -150,16 +329,12 @@ submitReasonBtn.onclick = function () {
         triggerFlashEffect();
 
         if (p.score === 0) {
-            const gameOverAudio = new Audio('./ovozlar/gameover.MP3');
-            gameOverAudio.play();
+            try { const gameOverAudio = new Audio('./ovozlar/gameover.MP3'); gameOverAudio.play(); } catch (e) { }
         } else {
-            const errorAudio = new Audio('./ovozlar/error.MP3');
-            errorAudio.play();
-
-            setTimeout(() => {
-                const lockAudio = new Audio('./ovozlar/lock.MP3');
-                lockAudio.play();
-            }, 1000);
+            try {
+                const errorAudio = new Audio('./ovozlar/error.MP3'); errorAudio.play();
+                setTimeout(() => { const lockAudio = new Audio('./ovozlar/lock.MP3'); lockAudio.play(); }, 1000);
+            } catch (e) { }
         }
 
         saveData();
@@ -204,7 +379,7 @@ function renderMoney() {
         row.style.padding = '15px';
 
         let exercisesHtml = '';
-        if (p.exercises.length === 0) {
+        if (!p.exercises || p.exercises.length === 0) {
             exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
         } else {
             p.exercises.forEach((ex, idx) => {
@@ -270,7 +445,7 @@ function renderLogs() {
         logItem.innerHTML = `
             <div class="log-left">
                 <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
-                <div class="log-reason">🚨 Sabab: ${item.reason}</div>
+                <div class="log-reason">${item.reason}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="log-time">${displayTime}</div>
@@ -315,6 +490,7 @@ function renderUI() {
         const isLocked = p.nextAllowedTime && now < p.nextAllowedTime;
 
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
+        card.style.position = 'relative';
 
         let statusHtml = '';
         if (p.score <= 0) {
@@ -325,8 +501,11 @@ function renderUI() {
             statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`;
         }
 
+        const shieldDisplay = p.shields > 0 ? `<div class="shield-box" style="position:absolute; top:10px; right:10px; background:#1e90ff; padding:2px 6px; border-radius:4px; font-size:12px; color:#fff;">🛡️ x${p.shields}</div>` : '';
+
         card.innerHTML = `
             <span class="crown-icon">👑</span>
+            ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
             <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
@@ -370,6 +549,7 @@ function startTimer() {
 setInterval(() => {
     const now = Date.now();
     let shartliYangilash = false;
+    updateShieldsAuto();
 
     participants.forEach(p => {
         if (p.nextAllowedTime) {
@@ -397,6 +577,13 @@ if (startBtn) {
     startBtn.onclick = () => {
         if (confirm("6 kunlik challenge boshlansinmi?")) {
             endTime = Date.now() + CHALLENGE_DURATION;
+            participants.forEach(p => {
+                p.lastShieldUpdate = Date.now();
+                p.shields = 0;
+                p.score = 15;
+                p.exercises = [];
+            });
+            logs = [];
             saveData();
             loadData();
         }
