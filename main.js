@@ -20,13 +20,22 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// Omad g'ildiragi shartlari (5 ta teng sektorga moslandi, har biri 72 gradusdan)
+// Barabanda jami 13 ta teng sektor (360 / 13 = 27.69 darajadan)
 const WHEEL_OPTIONS = [
-    { text: "Siz omadlisiz 😍 (Ball qo'shilmadi)", minDeg: 0, maxDeg: 72, type: "lucky_no_score" },
-    { text: "2X jazo ehh 💀", minDeg: 73, maxDeg: 144, type: "double" },
-    { text: "Hech narsa 🤐", minDeg: 145, maxDeg: 216, type: "nothing" },
-    { text: "Qalqon yutdingiz 🛡️", minDeg: 217, maxDeg: 288, type: "shield_reward" },
-    { text: "2x minus ball 💀💀", minDeg: 289, maxDeg: 360, type: "double_minus" }
+    { text: "Siz omadlisiz 😍", type: "lucky", color: "#2ed573" },
+    { text: "Qalqon yutdingiz 🛡️", type: "shield_reward", color: "#1e90ff" },
+    { text: "2X ball dan maxrum bo'ldingiz 💀", type: "double_minus", color: "#ff4757" },
+    // 10 ta "Hech narsa" sektori
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#f1c40f" },
+    { text: "Hech narsa 🤐", type: "nothing", color: "#e67e22" }
 ];
 
 let isSpinning = false;
@@ -115,6 +124,7 @@ function loadData() {
     renderUI();
     renderLogs();
     renderMoney();
+    drawWheel();
 }
 
 function updateShieldsAuto() {
@@ -133,6 +143,36 @@ function updateShieldsAuto() {
     saveData();
 }
 
+function drawWheel() {
+    if (!wheelCanvas) return;
+    const ctx = wheelCanvas.getContext("2d");
+    const numSectors = WHEEL_OPTIONS.length;
+    const arc = (2 * Math.PI) / numSectors;
+    const radius = wheelCanvas.width / 2;
+
+    ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+
+    WHEEL_OPTIONS.forEach((opt, i) => {
+        const angle = i * arc;
+        ctx.fillStyle = opt.color;
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arc);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        // Matnni yozish
+        ctx.save();
+        ctx.fillStyle = "#fff";
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText(opt.text.substring(0, 15), radius - 15, 5);
+        ctx.restore();
+    });
+}
+
 function triggerFlashEffect() {
     if (!flashOverlay) return;
     flashOverlay.classList.add("flash-active");
@@ -146,9 +186,11 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
+    // 1-QADAM: Birinchi bo'lib admin paroli so'raladi
     askPassword(() => {
         activeParticipantId = id;
 
+        // Agar qalqoni bo'lsa, avtomatik ravishda qalqon himoya qiladi va g'ildirak aylanmaydi
         if (p.shields > 0) {
             triggerShieldProtection(p);
             return;
@@ -172,39 +214,31 @@ function triggerShieldProtection(p) {
         timestamp: Date.now()
     });
 
-    try {
-        const shieldAudio = new Audio('./ovozlar/shield.MP3');
-        shieldAudio.play();
-    } catch (e) { }
+    try { const shieldAudio = new Audio('./ovozlar/shield.MP3'); shieldAudio.play(); } catch (e) { }
 
-    saveData();
-    renderUI();
-    renderLogs();
-
-    const cardMsgBox = document.getElementById(`shield-alert-${p.id}`);
-    if (cardMsgBox) {
-        cardMsgBox.innerText = "Sizni qalqoningiz saqlab qoldi! 🛡️";
-        cardMsgBox.style.display = "block";
-        setTimeout(() => { cardMsgBox.style.display = "none"; }, 2000);
-    }
+    saveData(); renderUI(); renderLogs();
 }
 
+// RO'PARA-ROSA 6 SEKUNDLI AYLANISH LOGIKASI
 spinBtn.onclick = function () {
     if (isSpinning) return;
     isSpinning = true;
     wheelResult.innerText = "G'ildirak aylanmoqda... 🎲";
 
-    const randomDegree = Math.floor(Math.random() * 360);
-    const totalRotation = 1800 + randomDegree;
+    const numSectors = WHEEL_OPTIONS.length;
+    const sectorSelected = Math.floor(Math.random() * numSectors);
 
+    const sectorArcDeg = 360 / numSectors;
+    // Ko'rsatkich tepada (▼) turganligi sababli hisoblash inversiyasi
+    const targetDegree = 360 - (sectorSelected * sectorArcDeg) - (sectorArcDeg / 2);
+    const totalRotation = 2880 + targetDegree; // Kamida 8 marta to'liq aylanish
+
+    wheelCanvas.style.transition = "transform 6s cubic-bezier(0.1, 0.8, 0.1, 1)";
     wheelCanvas.style.transform = `rotate(${totalRotation}deg)`;
 
     setTimeout(() => {
         isSpinning = false;
-        const normalizedDegree = (360 - (randomDegree % 360)) % 360;
-
-        let targetOption = WHEEL_OPTIONS.find(opt => normalizedDegree >= opt.minDeg && normalizedDegree <= opt.maxDeg);
-        if (!targetOption) targetOption = WHEEL_OPTIONS[2];
+        let targetOption = WHEEL_OPTIONS[sectorSelected];
 
         wheelResult.innerText = `Natija: ${targetOption.text}`;
         currentWheelModifier = targetOption.type;
@@ -214,35 +248,28 @@ spinBtn.onclick = function () {
             executeWheelResult(targetOption);
         }, 1500);
 
-    }, 4000);
+    }, 6000); // Qat'iy 6 soniya aylanish vaqti
 };
 
 function executeWheelResult(option) {
     const p = participants.find(x => x.id === activeParticipantId);
     if (!p) return;
 
-    // "Siz omadlisiz" tushganda ball qo'shish qismi olib tashlandi, shunchaki log yoziladi
-    if (option.type === "lucky_no_score") {
+    // SHART 1: "Siz omadlisiz" tushsa hech narsa bo'lmaydi, jarima ham yo'q, ball ham ketmaydi!
+    if (option.type === "lucky") {
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
-            reason: "🍀 Omad g'ildiragida 'Omadlisiz' tushdi, lekin bu safar ball qo'shilmadi.",
+            reason: "🍀 Omad g'ildiragida 'Siz omadlisiz 😍' sektori chiqdi! Ball ayirilmadi va jazo qo'shilmadi.",
             timestamp: Date.now()
         });
         p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
-        alert(`${p.name}, siz shunchaki omadlisiz! Ballingiz o'zgarmadi.`);
+        alert(`${p.name} siz bugun juda omadlisiz! Ballingiz joyida qoldi.`);
         saveData(); renderUI(); renderLogs(); return;
     }
 
-    if (option.type === "shield_reward") {
-        p.shields++;
-        logs.unshift({ name: p.name, remainingScore: p.score, reason: "🛡️ Omad g'ildiragidan 1 ta zaxira Himoya Qalqoni yutib oldi!", timestamp: Date.now() });
-        p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
-        alert(`${p.name} zaxira qalqon yutib oldi! Karta fonida qalqon belgisi faollashdi.`);
-        saveData(); renderUI(); renderLogs(); return;
-    }
-
-    reasonTargetText.innerText = `${p.name} uchun jarima sababi [Natija: ${option.text}]:`;
+    // Boshqa har qanday holat uchun sabab yozish oynasi ochiladi va tarixga muhrlanadi
+    reasonTargetText.innerText = `${p.name} uchun qoida buzilish sababini kiriting [Natija: ${option.text}]:`;
     reasonInput.value = '';
     reasonModal.style.display = "flex";
     reasonInput.focus();
@@ -257,35 +284,27 @@ submitReasonBtn.onclick = function () {
 
     if (p) {
         let logActionPrefix = "🚨 Sabab";
+        const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
 
-        // YANGI SHART: 2x minus ball tushgandagi logika (-2 ball va 2 ta mashq)
-        if (currentWheelModifier === "double_minus") {
-            p.score -= 2;
-            if (p.score < 0) p.score = 0; // Ball minusga o'tib ketmasligi uchun
-
-            const ex1 = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-            let ex2 = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-            // Ikkala mashq bir xil bo'lib qolmasligi uchun kichik tekshiruv
-            if (ex1 === ex2) { ex2 = EXERCISE_POOL[(EXERCISE_POOL.indexOf(ex1) + 1) % EXERCISE_POOL.length]; }
-
-            p.exercises.push(ex1);
-            p.exercises.push(ex2);
-            logActionPrefix = "💀💀 [2X MINUS BALL] Sabab";
-        }
-        // 2X jazo logikasi (normal holatda -1 ball, lekin mashq 2 barobar)
-        else if (currentWheelModifier === "double") {
-            p.score--;
-            if (p.score < 0) p.score = 0;
-            const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
-            p.exercises.push(`2X ${randomExercise}`);
-            logActionPrefix = "💀 [2X JAZO] Sabab";
-        }
-        // Standart jarima logikasi (-1 ball va 1 ta mashq)
-        else {
-            p.score--;
-            if (p.score < 0) p.score = 0;
-            const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
+        // SHART 2: Qalqon yutdingiz -> +1 Qalqon va 1 ta random jazo (ball ketmaydi)
+        if (currentWheelModifier === "shield_reward") {
+            p.shields++;
             p.exercises.push(randomExercise);
+            logActionPrefix = "🛡️ [QALQON + JAZO] Sabab";
+        }
+        // SHART 3: 2X ball dan mahrum bo'ldingiz -> -2 ball va 1 ta random jazo
+        else if (currentWheelModifier === "double_minus") {
+            p.score -= 2;
+            if (p.score < 0) p.score = 0;
+            p.exercises.push(randomExercise);
+            logActionPrefix = "💀 [2X MINUS BALL] Sabab";
+        }
+        // SHART 4: Hech narsa -> -1 ball va 1 ta random jazo
+        else if (currentWheelModifier === "nothing") {
+            p.score--;
+            if (p.score < 0) p.score = 0;
+            p.exercises.push(randomExercise);
+            logActionPrefix = "🤐 [JARIMA] Sabab";
         }
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
@@ -293,7 +312,7 @@ submitReasonBtn.onclick = function () {
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
-            reason: `${logActionPrefix}: ${reasonText}`,
+            reason: `${logActionPrefix}: ${reasonText} (Yuklangan Vazifa: ${currentWheelModifier !== 'lucky' ? randomExercise : 'Yoq'})`,
             timestamp: now
         });
 
@@ -310,12 +329,6 @@ submitReasonBtn.onclick = function () {
         }
 
         saveData(); renderUI(); renderLogs(); renderMoney();
-
-        const scoreEl = document.getElementById(`score-${p.id}`);
-        if (scoreEl) {
-            scoreEl.classList.add('score-change');
-            setTimeout(() => scoreEl.classList.remove('score-change'), 500);
-        }
     }
 };
 
@@ -337,48 +350,35 @@ function renderMoney() {
     if (!moneyContainer) return;
     moneyContainer.innerHTML = '';
     participants.forEach(p => {
+        if (!p.exercises || p.exercises.length === 0) return;
+
         const row = document.createElement('div');
         row.className = 'money-row';
-        row.style.flexDirection = 'column';
-        row.style.alignItems = 'flex-start';
-        row.style.gap = '10px';
-        row.style.padding = '15px';
+        row.style.padding = '10px';
+        row.style.borderBottom = '1px solid #333';
 
         let exercisesHtml = '';
-        if (!p.exercises || p.exercises.length === 0) {
-            exercisesHtml = `<div style="color: #2ed573; font-size: 14px;">Qarzdorlik yo'q, daxshat! 😎</div>`;
-        } else {
-            p.exercises.forEach((ex, idx) => {
-                exercisesHtml += `
-                    <div class="money-right" style="width: 100%; justify-content: space-between; margin-bottom: 5px;">
-                        <div class="money-val" style="font-size: 15px;">🏋️ Jismoniy vazifa: ${ex}</div>
-                        <button class="pay-btn" onclick="payFine(${p.id}, ${idx})">Bajarildi</button>
-                    </div>
-                `;
-            });
-        }
+        p.exercises.forEach((ex, idx) => {
+            exercisesHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; width:100%;">
+                    <span style="color:#fff;">🏋️ ${ex}</span>
+                    <button class="pay-btn" onclick="payFine(${p.id}, ${idx})" style="padding:2px 8px; cursor:pointer;">Bajarildi</button>
+                </div>
+            `;
+        });
 
         row.innerHTML = `
-            <div class="money-name" style="font-weight: bold; border-bottom: 1px solid #333; width: 100%; padding-bottom: 5px; color: #fff;">${p.name}</div>
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 5px;">${exercisesHtml}</div>
+            <div style="font-weight:bold; color:#00d4ff; margin-bottom:5px;">${p.name}:</div>
+            <div style="width:100%;">${exercisesHtml}</div>
         `;
         moneyContainer.appendChild(row);
     });
 }
 
 function formatLogTime(item) {
-    if (!item.timestamp && !item.time) return "Noma'lum vaqt";
-    const date = item.timestamp ? new Date(item.timestamp) : new Date();
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    const logDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-    const timeString = item.timestamp ? date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : item.time;
-
-    if (logDate.getTime() === today.getTime() || !item.timestamp) { return `Bugun, ${timeString}`; }
-    else if (logDate.getTime() === yesterday.getTime()) { return `Kecha, ${timeString}`; }
-    else { return `${date.getDate()}-${["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"][date.getMonth()]}, ${timeString}`; }
+    if (!item.timestamp) return "Bugun";
+    const date = new Date(item.timestamp);
+    return date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
 }
 
 function renderLogs() {
@@ -392,14 +392,17 @@ function renderLogs() {
     logs.forEach((item, index) => {
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
+        logItem.style.display = 'flex';
+        logItem.style.justifyContent = 'space-between';
+        logItem.style.marginBottom = '8px';
         logItem.innerHTML = `
-            <div class="log-left">
-                <div class="log-user-info">${item.name} <span class="current-score">Qolgan ball: ${item.remainingScore}</span></div>
-                <div class="log-reason">${item.reason}</div>
+            <div>
+                <strong style="color:#ffd700;">${item.name}</strong> (Ball: ${item.remainingScore}) <br>
+                <span style="color:#bbb; font-size:13px;">${item.reason}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="log-time">${formatLogTime(item)}</div>
-                <button onclick="deleteLog(${index})" style="background: none; border: none; color: #ff4757; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px;">×</button>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:12px; color:#888;">${formatLogTime(item)}</span>
+                <button onclick="deleteLog(${index})" style="background:none; border:none; color:#ff4757; cursor:pointer; font-weight:bold;">×</button>
             </div>
         `;
         logsContainer.appendChild(logItem);
@@ -423,9 +426,9 @@ function renderUI() {
 
     document.getElementById('stat-total-lost').innerText = participants.reduce((sum, p) => sum + (15 - p.score), 0);
     let kings = participants.filter(p => p.score === maxScore && p.score > 0).map(p => p.name.split(' ')[0]);
-    document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "Hech kim";
+    document.getElementById('stat-king').innerText = kings.length > 0 ? kings.join(', ') : "--";
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
-    document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
+    document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "--";
 
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -433,31 +436,19 @@ function renderUI() {
         const isLocked = p.nextAllowedTime && now < p.nextAllowedTime;
 
         card.className = `card ${isLeader ? 'leader' : 'normal-card'}`;
+        card.style.position = 'relative';
 
-        let statusHtml = '';
-        if (p.score <= 0) { statusHtml = `<div class="status-msg status-loser">Siz o'yinda mag'lub bo'ldingiz! 💀</div>`; }
-        else if (isGameOver) { statusHtml = `<div class="status-msg status-winner">Tabriklaymiz! Qutilib qoldingiz!!! 🎉</div>`; }
-        else { statusHtml = `<div class="cooldown-label">${isLocked ? formatTime(p.nextAllowedTime - now) : ''}</div>`; }
-
-        const shieldDisplay = p.shields > 0 ? `<div class="shield-box">🛡️ x${p.shields}</div>` : '';
+        const shieldDisplay = p.shields > 0 ? `<div class="shield-box" style="position:absolute; top:10px; right:10px; background:#1e90ff; padding:2px 6px; border-radius:4px; font-size:12px;">🛡️ x${p.shields}</div>` : '';
 
         card.innerHTML = `
-            <span class="crown-icon">👑</span>
             ${shieldDisplay}
-            <h3>${p.name}</h3>
-            <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <div id="shield-alert-${p.id}" class="shield-alert-text" style="display: none;"></div>
-            <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
-                ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} onclick="subtract(${p.id})"><span>×</span></button>
-            ${statusHtml}
+            <h3 style="margin-top:15px;">${p.name}</h3>
+            <div class="score-box" id="score-${p.id}" style="font-size:24px; font-weight:bold; margin:10px 0;">${p.score} ball</div>
+            <button class="minus-btn" ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} onclick="subtract(${p.id})" style="padding:5px 15px; cursor:pointer;">Ball Ayirish</button>
+            <div style="font-size:12px; color:#ff4757; margin-top:5px;">${isLocked ? 'Kutish vaqti active' : ''}</div>
         `;
         grid.appendChild(card);
     });
-}
-
-function formatTime(ms) {
-    const totalSec = Math.floor(ms / 1000);
-    return `${Math.floor(totalSec / 60)}:${(totalSec % 60) < 10 ? '0' : ''}${totalSec % 60}`;
 }
 
 function startTimer() {
@@ -501,14 +492,16 @@ if (startBtn) {
             participants.forEach(p => {
                 p.lastShieldUpdate = Date.now();
                 p.shields = 0;
+                p.score = 15;
+                p.exercises = [];
             });
+            logs = [];
             saveData(); loadData();
         }
     };
 }
 
-if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar saqlandi!"); };
-if (refreshBtn) refreshBtn.onclick = () => { if (confirm("Haqiqatdan ham noldan boshlamoqchimisiz?")) { localStorage.clear(); location.reload(); } };
+if (saveBtn) saveBtn.onclick = () => { saveData(); alert("Natijalar muvaffaqiyatli saqlandi! 💾"); };
 if (infoBtn) infoBtn.onclick = () => modal.style.display = "flex";
 
 const closeBtn = document.querySelector(".close-modal");
