@@ -20,8 +20,7 @@ const EXERCISE_POOL = [
     "50 ta pres kachat 🏋️‍♂️"
 ];
 
-// --- OMAD G'ILDIRAGI SOZLAMALARI (SEN SO'RAGANINGDEK) ---
-// Jami 13 ta narsa, shundan 10 tasi "Hech narsa"
+// --- OMAD G'ILDIRAGI SOZLAMALARI (10 ta "Hech narsa" sektori bilan) ---
 const WHEEL_OPTIONS = [
     { text: "Siz omadlisiz 😍", type: "lucky", color: "#2ed573" },
     { text: "Qalqon yutdingiz 🛡️", type: "shield_reward", color: "#1e90ff" },
@@ -104,15 +103,21 @@ function saveData() {
 function loadData() {
     const local = localStorage.getItem('swearing_challenge_backup');
     if (local) {
-        const parsed = JSON.parse(local);
-        participants = parsed.participants.map(p => ({
-            ...p,
-            exercises: p.exercises !== undefined ? p.exercises : [],
-            shields: p.shields !== undefined ? p.shields : 0,
-            lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
-        }));
-        endTime = parsed.endTime;
-        logs = parsed.logs || [];
+        try {
+            const parsed = JSON.parse(local);
+            if (parsed.participants && parsed.participants.length > 0) {
+                participants = parsed.participants.map(p => ({
+                    ...p,
+                    exercises: p.exercises !== undefined ? p.exercises : [],
+                    shields: p.shields !== undefined ? p.shields : 0,
+                    lastShieldUpdate: p.lastShieldUpdate !== undefined ? p.lastShieldUpdate : null
+                }));
+            }
+            endTime = parsed.endTime;
+            logs = parsed.logs || [];
+        } catch (e) {
+            console.log("Keshni o'qishda xatolik, standart ma'lumotlar yuklanmoqda.");
+        }
     }
 
     updateShieldsAuto();
@@ -128,10 +133,9 @@ function loadData() {
     renderUI();
     renderLogs();
     renderMoney();
-    drawWheel(); // G'ildirakni chizish
+    drawWheel();
 }
 
-// 48 soatda qalqon berish (avvalgi sodir bo'ladigan narsalar saqlangan)
 function updateShieldsAuto() {
     if (!endTime) return;
     const now = Date.now();
@@ -149,7 +153,6 @@ function updateShieldsAuto() {
     saveData();
 }
 
-// G'ildirakni vizual chizish funksiyasi
 function drawWheel() {
     if (!wheelCanvas) return;
     const ctx = wheelCanvas.getContext("2d");
@@ -187,7 +190,6 @@ function triggerFlashEffect() {
     }, 150);
 }
 
-// Ball ayirish bosilganda: Parol tekshiriladi, keyin BARABAN chiqadi
 window.subtract = function (id) {
     const now = Date.now();
     if (endTime && now >= endTime) return;
@@ -195,11 +197,9 @@ window.subtract = function (id) {
     const p = participants.find(x => x.id === id);
     if (!p || (p.nextAllowedTime && now < p.nextAllowedTime) || p.score <= 0) return;
 
-    // Sening paroling joyida turibdi
     askPassword(() => {
         activeParticipantId = id;
 
-        // Agar ishtirokchida qalqon bo'lsa, avtomatik saqlaydi (avvalgi mantiq saqlangan)
         if (p.shields > 0) {
             p.shields--;
             p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
@@ -214,7 +214,6 @@ window.subtract = function (id) {
             return;
         }
 
-        // Qalqoni bo'lmasa g'ildirak ochiladi
         wheelTargetText.innerText = `${p.name} uchun Omad G'ildiragi!`;
         wheelResult.innerText = "G'ildirakni aylantiring... 🎲";
         wheelCanvas.style.transform = "rotate(0deg)";
@@ -222,7 +221,6 @@ window.subtract = function (id) {
     });
 };
 
-// RO'PARA-ROSA 6 SEKUND AYLANADIGAN FUNKSIYA
 spinBtn.onclick = function () {
     if (isSpinning) return;
     isSpinning = true;
@@ -233,9 +231,8 @@ spinBtn.onclick = function () {
 
     const sectorArcDeg = 360 / numSectors;
     const targetDegree = 360 - (sectorSelected * sectorArcDeg) - (sectorArcDeg / 2);
-    const totalRotation = 2880 + targetDegree; // Kamida 8 marta to'liq aylanish
+    const totalRotation = 2880 + targetDegree;
 
-    // Animatsiya vaqti qat'iy 6 sekund (6s) qilindi
     wheelCanvas.style.transition = "transform 6s cubic-bezier(0.1, 0.8, 0.1, 1)";
     wheelCanvas.style.transform = `rotate(${totalRotation}deg)`;
 
@@ -251,15 +248,13 @@ spinBtn.onclick = function () {
             executeWheelResult(targetOption);
         }, 1200);
 
-    }, 6000); // 6 sekund kutadi
+    }, 6000);
 };
 
-// G'ildirak to'xtagandan keyingi hisob-kitob (Sodir bo'ladigan narsalar)
 function executeWheelResult(option) {
     const p = participants.find(x => x.id === activeParticipantId);
     if (!p) return;
 
-    // 1. Siz omadlisiz: ball ayirilmaydi, jazo qo'shilmaydi, faqat tarixga yoziladi
     if (option.type === "lucky") {
         logs.unshift({
             name: p.name,
@@ -272,7 +267,6 @@ function executeWheelResult(option) {
         return;
     }
 
-    // Qolgan hollarda sabab kiritish oynasi ochiladi va unga qarab vazifalar yuklanadi
     reasonTargetText.innerText = `${p.name} uchun qoida buzilish sababini yozing [Baraban: ${option.text}]:`;
     reasonInput.value = '';
     reasonModal.style.display = "flex";
@@ -294,20 +288,17 @@ submitReasonBtn.onclick = function () {
         let logPrefix = "🚨 Sabab";
         const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
 
-        // 2. Qalqon yutdingiz: bitta qalqon qo'shadi + jazo (ball ayrilmaydi)
         if (currentWheelModifier === "shield_reward") {
             p.shields = (p.shields || 0) + 1;
             p.exercises.push(randomExercise);
             logPrefix = "🛡️ [QALQON + JAZO] Sabab";
         }
-        // 3. 2X ball dan mahrum bo'ldingiz: 2 ta ball ayiriladi + jazo
         else if (currentWheelModifier === "double_minus") {
             p.score -= 2;
             if (p.score < 0) p.score = 0;
             p.exercises.push(randomExercise);
             logPrefix = "💀 [2X MINUS BALL] Sabab";
         }
-        // 4. Hech narsa: odatdagidek 1 ball ayiriladi + jazo
         else if (currentWheelModifier === "nothing") {
             p.score--;
             if (p.score < 0) p.score = 0;
@@ -317,7 +308,6 @@ submitReasonBtn.onclick = function () {
 
         p.nextAllowedTime = now + COOLDOWN_TIME;
 
-        // Hamma narsa tarixga batafsil yoziladi
         logs.unshift({
             name: p.name,
             remainingScore: p.score,
