@@ -12,7 +12,10 @@ let securityCallback = null;
 let timerInterval;
 let endTime = null;
 const CHALLENGE_DURATION = 6 * 24 * 60 * 60 * 1000;
-const COOLDOWN_TIME = 5 * 1000;
+const COOLDOWN_TIME = 30 * 1000;
+
+// GORILLA MONEY CONFIG
+const TOTAL_GORILLA_MONEY = 48000;
 
 const EXERCISE_POOL = [
     "30ta anjimaniya 💪",
@@ -41,6 +44,10 @@ const passwordModal = document.getElementById("passwordModal");
 const adminPasswordInput = document.getElementById("adminPasswordInput");
 const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
 const submitPasswordBtn = document.getElementById("submitPasswordBtn");
+
+// Gorilla display elementlari
+const gorillaMoneyDisplay = document.getElementById('gorilla-money-display');
+const gorillaStatusText = document.getElementById('gorilla-status-text');
 
 function verifySecureKey(input) {
     return btoa(input) === "ODU5MDA5MTExNw==";
@@ -142,7 +149,7 @@ window.subtract = function (id) {
     askPassword(() => {
         activeParticipantId = id;
 
-        // QALQON TIZIMI (Barabansiz ham ishlaydi)
+        // QALQON TIZIMI
         if (p.shields > 0) {
             p.shields--;
             p.nextAllowedTime = Date.now() + COOLDOWN_TIME;
@@ -157,7 +164,6 @@ window.subtract = function (id) {
             return;
         }
 
-        // Baraban yo'q, to'g'ridan-to'g'ri sabab yozish oynasi ochiladi
         reasonTargetText.innerText = `${p.name} dan 1 ball ayirish uchun sabab yozing:`;
         reasonInput.value = '';
         reasonModal.style.display = "flex";
@@ -177,7 +183,7 @@ submitReasonBtn.onclick = function () {
     const now = Date.now();
 
     if (p) {
-        p.score--; // To'g'ridan-to'g'ri 1 ball ayiriladi
+        p.score--;
         if (p.score < 0) p.score = 0;
 
         const randomExercise = EXERCISE_POOL[Math.floor(Math.random() * EXERCISE_POOL.length)];
@@ -351,6 +357,40 @@ function renderUI() {
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
+    // --- GORILLA SUMMASI MANTIQI ---
+    let loser = participants.find(p => p.score === 0);
+    let currentGorillaMoney = 0;
+
+    if (endTime) {
+        const totalDuration = CHALLENGE_DURATION;
+        const timePassed = now - (endTime - totalDuration);
+
+        if (loser) {
+            // Agar biror kishining balli 0 bo'lsa summa srazu 48000 bo'ladi va muzlaydi
+            currentGorillaMoney = TOTAL_GORILLA_MONEY;
+            gorillaStatusText.innerHTML = `<span class="gorilla-text-alert">Bu summa ${loser.name.split(' ')[0]}niki va grafni u qiladi! 💀</span>`;
+        } else if (isGameOver) {
+            // Vaqt tugaganda hech kim 0 bo'lmagan bo'lsa
+            currentGorillaMoney = TOTAL_GORILLA_MONEY;
+            gorillaStatusText.innerHTML = `<span class="gorilla-text-success">Bu summa hech kimniki emas! 🎉</span>`;
+        } else {
+            // Challenge davom etayotganda pul real vaqt nisbatida o'sib boradi
+            if (timePassed > 0) {
+                let ratio = timePassed / totalDuration;
+                if (ratio > 1) ratio = 1;
+                currentGorillaMoney = Math.floor(ratio * TOTAL_GORILLA_MONEY);
+            }
+            gorillaStatusText.innerHTML = ``;
+        }
+    } else {
+        gorillaStatusText.innerHTML = ``;
+    }
+
+    if (gorillaMoneyDisplay) {
+        gorillaMoneyDisplay.innerText = `${currentGorillaMoney.toLocaleString('uz-UZ')} so'm`;
+    }
+    // --------------------------------
+
     participants.forEach(p => {
         const card = document.createElement('div');
         const isLeader = p.score === maxScore && p.score > 0;
@@ -375,8 +415,8 @@ function renderUI() {
             ${shieldDisplay}
             <h3>${p.name}</h3>
             <div class="score-box" id="score-${p.id}">${p.score}</div>
-            <button class="minus-btn ${(isLocked || isGameOver || p.score <= 0) ? 'disabled-btn' : ''}" 
-                ${(isLocked || isGameOver || p.score <= 0) ? 'disabled' : ''} 
+            <button class="minus-btn ${(isLocked || isGameOver || loser || p.score <= 0) ? 'disabled-btn' : ''}" 
+                ${(isLocked || isGameOver || loser || p.score <= 0) ? 'disabled' : ''} 
                 onclick="subtract(${p.id})">
                 <span>×</span>
             </button>
@@ -409,6 +449,9 @@ function startTimer() {
             const m = Math.floor((timeLeft % 3600000) / 60000);
             const s = Math.floor((timeLeft % 60000) / 1000);
             timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+            // Har soniyada pul o'zgarishi ekranda aks etishi uchun UI qayta chiziladi
+            renderUI();
         }
     }, 1000);
 }
@@ -430,7 +473,12 @@ setInterval(() => {
         }
     });
 
-    if (shartliYangilash && (!endTime || now < endTime)) {
+    // Vaqt ketayotganda pul soniyasiga render bo'lishini ta'minlash
+    if (endTime && now < endTime) {
+        shartliYangilash = true;
+    }
+
+    if (shartliYangilash) {
         renderUI();
     }
 }, 1000);

@@ -715,6 +715,27 @@ body {
     font-weight: 600;
 }
 
+.gorilla-text-alert {
+    color: #ff4757;
+    text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+    animation: flashAlert 1s infinite alternate;
+}
+
+.gorilla-text-success {
+    color: #2ed573;
+    text-shadow: 0 0 10px rgba(46, 213, 115, 0.3);
+}
+
+@keyframes flashAlert {
+    0% {
+        opacity: 0.8;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
 .modal-body p {
     color: #aaa;
     line-height: 1.6;
