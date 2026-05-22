@@ -112,6 +112,7 @@ function loadData() {
     renderUI();
     renderLogs();
     renderMoney();
+    updateGorillaMoneyUI(); // Dastlabki yuklanganda pulni hisoblash
 }
 
 function updateShieldsAuto() {
@@ -160,7 +161,7 @@ window.subtract = function (id) {
                 timestamp: Date.now()
             });
             try { new Audio('./ovozlar/shield.MP3').play(); } catch (e) { }
-            saveData(); renderUI(); renderLogs();
+            saveData(); renderUI(); renderLogs(); updateGorillaMoneyUI();
             return;
         }
 
@@ -214,6 +215,7 @@ submitReasonBtn.onclick = function () {
         renderUI();
         renderLogs();
         renderMoney();
+        updateGorillaMoneyUI();
 
         const scoreEl = document.getElementById(`score-${id}`);
         if (scoreEl) {
@@ -339,6 +341,46 @@ window.deleteLog = function (index) {
     });
 };
 
+// GORILLA SUMMASINI ALOHIDA YANGILASH FUNKSIYASI (ANIMATSIYA BUZILMASLIGI UCHUN)
+function updateGorillaMoneyUI() {
+    const now = Date.now();
+    const isGameOver = endTime ? now >= endTime : false;
+    let loser = participants.find(p => p.score === 0);
+    let currentGorillaMoney = 0;
+
+    if (endTime) {
+        const totalDuration = CHALLENGE_DURATION;
+        const timePassed = now - (endTime - totalDuration);
+
+        if (loser) {
+            currentGorillaMoney = TOTAL_GORILLA_MONEY;
+            if (gorillaStatusText) {
+                gorillaStatusText.innerHTML = `<span class="gorilla-text-alert">Bu summa ${loser.name.split(' ')[0]}niki va grafni u qiladi! 💀</span>`;
+            }
+        } else if (isGameOver) {
+            currentGorillaMoney = TOTAL_GORILLA_MONEY;
+            if (gorillaStatusText) {
+                gorillaStatusText.innerHTML = `<span class="gorilla-text-success">Bu summa hech kimniki emas! 🎉</span>`;
+            }
+        } else {
+            if (timePassed > 0) {
+                let ratio = timePassed / totalDuration;
+                if (ratio > 1) ratio = 1;
+                currentGorillaMoney = Math.floor(ratio * TOTAL_GORILLA_MONEY);
+            }
+            if (gorillaStatusText) {
+                gorillaStatusText.innerHTML = ``;
+            }
+        }
+    } else {
+        if (gorillaStatusText) gorillaStatusText.innerHTML = ``;
+    }
+
+    if (gorillaMoneyDisplay) {
+        gorillaMoneyDisplay.innerText = `${currentGorillaMoney.toLocaleString('uz-UZ')} so'm`;
+    }
+}
+
 function renderUI() {
     if (!grid) return;
     grid.innerHTML = '';
@@ -357,39 +399,7 @@ function renderUI() {
     let dangerOnes = participants.filter(p => p.score <= 5 && p.score > 0).map(p => p.name.split(' ')[0]);
     document.getElementById('stat-danger').innerText = dangerOnes.length > 0 ? dangerOnes.join(', ') : "Yo'q";
 
-    // --- GORILLA SUMMASI MANTIQI ---
     let loser = participants.find(p => p.score === 0);
-    let currentGorillaMoney = 0;
-
-    if (endTime) {
-        const totalDuration = CHALLENGE_DURATION;
-        const timePassed = now - (endTime - totalDuration);
-
-        if (loser) {
-            // Agar biror kishining balli 0 bo'lsa summa srazu 48000 bo'ladi va muzlaydi
-            currentGorillaMoney = TOTAL_GORILLA_MONEY;
-            gorillaStatusText.innerHTML = `<span class="gorilla-text-alert">Bu summa ${loser.name.split(' ')[0]}niki va grafni u qiladi! 💀</span>`;
-        } else if (isGameOver) {
-            // Vaqt tugaganda hech kim 0 bo'lmagan bo'lsa
-            currentGorillaMoney = TOTAL_GORILLA_MONEY;
-            gorillaStatusText.innerHTML = `<span class="gorilla-text-success">Bu summa hech kimniki emas! 🎉</span>`;
-        } else {
-            // Challenge davom etayotganda pul real vaqt nisbatida o'sib boradi
-            if (timePassed > 0) {
-                let ratio = timePassed / totalDuration;
-                if (ratio > 1) ratio = 1;
-                currentGorillaMoney = Math.floor(ratio * TOTAL_GORILLA_MONEY);
-            }
-            gorillaStatusText.innerHTML = ``;
-        }
-    } else {
-        gorillaStatusText.innerHTML = ``;
-    }
-
-    if (gorillaMoneyDisplay) {
-        gorillaMoneyDisplay.innerText = `${currentGorillaMoney.toLocaleString('uz-UZ')} so'm`;
-    }
-    // --------------------------------
 
     participants.forEach(p => {
         const card = document.createElement('div');
@@ -443,6 +453,7 @@ function startTimer() {
             timerDisplay.innerText = "00:00:00:00";
             showRefreshUI();
             renderUI();
+            updateGorillaMoneyUI();
         } else {
             const d = Math.floor(timeLeft / 86400000);
             const h = Math.floor((timeLeft % 86400000) / 3600000);
@@ -450,8 +461,8 @@ function startTimer() {
             const s = Math.floor((timeLeft % 60000) / 1000);
             timerDisplay.innerText = `${String(d).padStart(2, '0')}:${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
-            // Har soniyada pul o'zgarishi ekranda aks etishi uchun UI qayta chiziladi
-            renderUI();
+            // ENDI BUTUN UINI EMAS, FAQAT PUL EKRANINI YANGILAYMIZ (Animatsiyalar buzilmaydi!)
+            updateGorillaMoneyUI();
         }
     }, 1000);
 }
@@ -464,6 +475,7 @@ setInterval(() => {
     participants.forEach(p => {
         if (p.nextAllowedTime) {
             if (now < p.nextAllowedTime) {
+                // Cooldown vaqtini matnini yangilab turish uchun (agar card ichida ko'rinayotgan bo'lsa)
                 shartliYangilash = true;
             } else {
                 p.nextAllowedTime = null;
@@ -472,11 +484,6 @@ setInterval(() => {
             }
         }
     });
-
-    // Vaqt ketayotganda pul soniyasiga render bo'lishini ta'minlash
-    if (endTime && now < endTime) {
-        shartliYangilash = true;
-    }
 
     if (shartliYangilash) {
         renderUI();
