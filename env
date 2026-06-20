@@ -1,14 +1,3 @@
-# MongoDB Connection String
-# O'zingizning MongoDB URI sini qo'ying
-MONGO_URI=mongodb+srv://challenge_user:challenge123@cluster0.abcde.mongodb.net/dontswear?retryWrites=true&w=shared
-
-# Server Port
+MONGO_URI=mongodb+srv://challenge_user:challenge123@cluster0.xyz.mongodb.net/dontswear
 PORT=3000
-
-# Node Environment
 NODE_ENV=production
-
-# Admin Password (Kodlangan)
-# Asli: 8590091117
-# Kodlangan: ODU5MDA5MTExNw==
-ADMIN_PASSWORD_HASH=ODU5MDA5MTExNw==

@@ -6,16 +6,13 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// MongoDB ulanish
 const MONGO_URI =
   process.env.MONGO_URI ||
-  "mongodb+srv://challenge_user:challenge123@cluster0.abcde.mongodb.net/dontswear?retryWrites=true&w=shared";
+  "mongodb+srv://suxroberkinov438_db_user:SuxrobErkinov2009@animixcluster.gk2nwfg.mongodb.net/dontswear?appName=AnimixCluster";
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "./")));
-
-// ==================== MONGOOSE SCHEMA ====================
 
 const ChallengeSchema = new mongoose.Schema({
   key: {
@@ -49,7 +46,6 @@ const ChallengeSchema = new mongoose.Schema({
 
 const Challenge = mongoose.model("Challenge", ChallengeSchema);
 
-// Boshlang'ich ma'lumotlar
 const initialData = {
   participants: [
     {
@@ -93,12 +89,8 @@ const initialData = {
   logs: [],
 };
 
-// ==================== MONGODB ULANISH ====================
-
 mongoose
   .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
   })
@@ -110,15 +102,11 @@ mongoose
     console.log("⚠️  Local server davom etmoqda...");
   });
 
-// ==================== API ENDPOINTS ====================
-
-// GET: Ma'lumotlarni bazadan olish
 app.get("/api/get-challenge-data", async (req, res) => {
   try {
     let data = await Challenge.findOne({ key: "main_data" });
 
     if (!data) {
-      console.log("📝 Yangi ma'lumotlar yaratilmoqda...");
       data = await Challenge.create({
         key: "main_data",
         ...initialData,
@@ -136,7 +124,6 @@ app.get("/api/get-challenge-data", async (req, res) => {
   }
 });
 
-// POST: Ma'lumotlarni bazaga saqlash
 app.post("/api/save-challenge-data", async (req, res) => {
   try {
     if (!req.body || !req.body.participants) {
@@ -176,7 +163,6 @@ app.post("/api/save-challenge-data", async (req, res) => {
   }
 });
 
-// POST: Parolni tekshirish
 app.post("/api/verify-password", (req, res) => {
   try {
     const { password } = req.body;
@@ -188,7 +174,6 @@ app.post("/api/verify-password", (req, res) => {
       });
     }
 
-    // Parol kodlangan holda saqlangan
     if (btoa(password) === "ODU5MDA5MTExNw==") {
       res.json({ success: true, message: "✅ Parol to'g'ri!" });
     } else {
@@ -206,7 +191,6 @@ app.post("/api/verify-password", (req, res) => {
   }
 });
 
-// GET: Barcha log larni olish
 app.get("/api/logs", async (req, res) => {
   try {
     const data = await Challenge.findOne({ key: "main_data" });
@@ -218,7 +202,6 @@ app.get("/api/logs", async (req, res) => {
   }
 });
 
-// GET: Barcha ishtirokchilarilarni olish
 app.get("/api/participants", async (req, res) => {
   try {
     const data = await Challenge.findOne({ key: "main_data" });
@@ -230,7 +213,6 @@ app.get("/api/participants", async (req, res) => {
   }
 });
 
-// DELETE: Ma'lumotlarni o'chirish (reset)
 app.delete("/api/reset", async (req, res) => {
   try {
     await Challenge.findOneAndUpdate(
@@ -244,18 +226,13 @@ app.delete("/api/reset", async (req, res) => {
   }
 });
 
-// ==================== STATIC FILES ====================
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Sahifa topilmadi!" });
 });
-
-// ==================== ERROR HANDLER ====================
 
 app.use((err, req, res, next) => {
   console.error("🔴 Server xatosi:", err);
@@ -267,19 +244,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==================== SERVER START ====================
-
 app.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════════╗
-║  🚀 Stop Swearing Challenge SERVER     ║
-║  🌐 http://localhost:${PORT}                ║
-╚════════════════════════════════════════╝
-    `);
+  console.log(`Server running on port ${PORT}`);
 });
 
-// Graceful shutdown
 process.on("SIGTERM", () => {
-  console.log("SIGTERM signal qabul qilindi. Server to'xtayotgan...");
   process.exit(0);
 });
