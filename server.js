@@ -227,7 +227,8 @@ app.delete("/api/reset", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  // MANA SHU QATOR TO'G'RILANDI: "index.html" -> "Index.html" qilindi.
+  res.sendFile(path.join(__dirname, "Index.html"));
 });
 
 app.use((req, res) => {
